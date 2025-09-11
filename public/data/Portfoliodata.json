@@ -1,0 +1,78 @@
+{
+  "name": "Rishab Chouhan",
+  "role": "Versatile Software Engineer & Full-Stack Developer",
+  "bio": "Results-oriented Software Engineer with over two years of hands-on experience across full-stack development, machine learning, cloud infrastructure, and DevOps practices. Proven track record of delivering high-impact solutions as a core contributor to the technical success of three Australian startups. I specialize in building scalable, user-centric applications with a strong emphasis on performance, security, and maintainability. Ask my AI assistant about my projects and experience!",
+  "contact": {
+    "email": "crishab07@gmail.com",
+    "linkedin": "https://www.linkedin.com/in/rishab-chouhan",
+    "github": "https://github.com/rishab-chouhan",
+    "phone": "+61 466339767",
+    "location": "Sydney 2127, NSW"
+  },
+  "skills": {
+    "Frontend": ["ReactJS", "TypeScript", "NextJS", "Flutter", "Dart"],
+    "Backend": ["NodeJS", "PHP", "Kafka", "NestJS", "Python", "Kotlin", "Java", "Springboot"],
+    "Cloud & DevOps": ["AWS", "GCP", "Docker", "Linux"],
+    "Databases": ["PostgreSQL", "MongoDB"],
+    "Blockchain": ["Solidity"],
+    "Core Languages": ["C", "C++"]
+  },
+  "experience": [
+    {
+      "role": "Founding Engineer",
+      "company": "Adina Labs (Stealth Blockchain Startup)",
+      "duration": "Dec 2024 - Present",
+      "description": "Built a high-performance Ethereum L2 blockchain application with TypeScript, Node.js, and React.js, ensuring scalability and security. Designed and implemented backend architecture for decentralized database integration with potential IPFS adoption. Developed and deployed smart contracts (Solidity, EVM) while integrating zkSync & zkRollups to boost transaction throughput (80% faster, 99% cheaper vs. L1)."
+    },
+    {
+      "role": "Full-Stack Developer",
+      "company": "Facere AI",
+      "duration": "July 2024 - Dec 2024",
+      "description": "Led full-stack development across backend (Java/Kotlin, REST APIs), frontend (React.js), and infrastructure (Docker, AWS EC2), building secure, scalable systems from scratch. Integrated Deepgram's speech-to-text API and GPT-4 for automated medical documentation workflows, reducing clinician admin time by over 40%. Built and maintained CI/CD pipelines with GitHub Actions and Docker, improving deployment reliability and reducing release time by 50%."
+    },
+    {
+      "role": "Research Analyst",
+      "company": "University of Sydney",
+      "duration": "Nov 2023 - March 2024",
+      "description": "Collaborated with a team of researchers working on AI automation of additive manufacturing/3D printing soot analysis during SLM (Selective Laser Melting). Developed data pipelines and analytical models using Python (pandas, scikit-learn), enabling automation of real-time estimation of soot formation on layers. Improved the existing DSCNN ML model to enhance error handling efficiency by 80%."
+    }
+  ],
+  "projects": [
+    {
+      "title": "Ethereum L2 Blockchain Application",
+      "description": "A high-performance blockchain application built on Ethereum Layer 2 with advanced features including zkRollups integration and decentralized database support.",
+      "technologies": ["TypeScript", "Node.js", "React.js", "Solidity", "zkSync", "IPFS"],
+      "contribution": "As the founding engineer, I designed and implemented the entire backend architecture, developed smart contracts, and integrated zkSync & zkRollups to achieve 80% faster transaction throughput and 99% cost reduction compared to Layer 1.",
+      "liveUrl": "#",
+      "repoUrl": "#"
+    },
+    {
+      "title": "AI-Powered Medical Documentation System",
+      "description": "An automated medical documentation workflow system that integrates speech-to-text capabilities with GPT-4 to reduce administrative burden on healthcare professionals.",
+      "technologies": ["Java", "Kotlin", "React.js", "Deepgram API", "GPT-4", "Docker", "AWS EC2"],
+      "contribution": "I led the full-stack development, integrated Deepgram's speech-to-text API and GPT-4 for automated workflows, and built CI/CD pipelines that reduced clinician admin time by over 40% and improved deployment reliability by 50%.",
+      "liveUrl": "#",
+      "repoUrl": "#"
+    },
+    {
+      "title": "3D Printing Soot Analysis AI System",
+      "description": "An AI automation system for additive manufacturing that analyzes soot formation during Selective Laser Melting (SLM) processes using advanced machine learning models.",
+      "technologies": ["Python", "pandas", "scikit-learn", "DSCNN", "Machine Learning"],
+      "contribution": "I developed data pipelines and analytical models for real-time soot formation estimation, and improved the existing DSCNN ML model to enhance error handling efficiency by 80%.",
+      "liveUrl": "#",
+      "repoUrl": "#"
+    }
+  ],
+  "education": [
+    {
+      "degree": "Masters of Information Technology & Information Technology Management",
+      "institution": "The University of Sydney",
+      "duration": "July 2023 - June 2025"
+    },
+    {
+      "degree": "Bachelors of Computer Science & Engineering",
+      "institution": "Sathyabama Institute of Science & Technology",
+      "duration": "July 2019 - June 2023"
+    }
+  ]
+}
