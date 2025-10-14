@@ -1,0 +1,142 @@
+{
+  "name": "Rishab Chouhan",
+  "role": "Versatile Software Engineer & Full-Stack Developer",
+  "bio": "Results-oriented Software Engineer with over two years of hands-on experience across full-stack development, machine learning, cloud infrastructure, and DevOps practices. Known for combining technical depth with creative problem-solving, I’ve contributed to the success of three Australian startups by delivering high-impact, scalable, and secure solutions. As a double scholar at the University of Sydney, I bring an analytical mindset, leadership, and curiosity for building technologies that improve real-world systems. Ask my AI assistant about my projects, strengths, or how I approach innovation!",
+
+  "motivation": "I’m driven by the idea that technology should solve meaningful problems — not just make things faster, but make life better. Whether it’s improving patient workflows in healthcare or building decentralized systems that redefine trust, I’m motivated by impact. I find energy in solving complex challenges and collaborating with people who share a mission to build things that matter.",
+
+  "strengths": [
+    "Rapid learning and adaptability across emerging technologies",
+    "Clear communication of complex technical ideas to diverse audiences",
+    "Balancing innovation with practical business needs",
+    "Building scalable systems with a focus on security and maintainability",
+    "Collaborative mindset with strong ownership and accountability"
+  ],
+
+  "values": [
+    "Integrity and curiosity in every project",
+    "Empathy for users and teammates alike",
+    "Continuous learning and improvement",
+    "Building for long-term impact, not short-term fixes",
+    "Experimentation backed by disciplined engineering"
+  ],
+
+  "softSkills": [
+    "Problem-solving under pressure",
+    "Cross-functional collaboration with designers, engineers, and product managers",
+    "Strong written and verbal communication",
+    "Mentorship and peer learning",
+    "User-first thinking"
+  ],
+
+  "leadershipStyle": "I lead by example — taking ownership of outcomes, supporting others when they’re stuck, and encouraging autonomy. I believe great teams are built on trust, shared accountability, and open communication.",
+
+  "technicalPhilosophy": "Code should be elegant, maintainable, and meaningful. I prioritize clean architecture, automated testing, and developer empathy — building tools that empower others to create better products.",
+
+  "learningGoals": [
+    "Advance expertise in scalable machine learning systems",
+    "Contribute to open-source projects in AI and infrastructure",
+    "Deepen knowledge of distributed systems and blockchain interoperability",
+    "Build products that bridge sustainability and technology"
+  ],
+
+  "contact": {
+    "email": "crishab07@gmail.com",
+    "linkedin": "https://www.linkedin.com/in/rishab-chouhan",
+    "github": "https://github.com/rishab-chouhan",
+    "phone": "+61 466339767",
+    "location": "Sydney 2127, NSW"
+  },
+
+  "skills": {
+    "Frontend": ["ReactJS", "TypeScript", "NextJS", "Flutter", "Dart"],
+    "Backend": ["NodeJS", "PHP", "Kafka", "NestJS", "Python", "Kotlin", "Java", "Spring Boot"],
+    "Cloud & DevOps": ["AWS", "GCP", "Docker", "Linux"],
+    "Databases": ["PostgreSQL", "MongoDB"],
+    "Blockchain": ["Solidity", "zkSync", "IPFS"],
+    "Core Languages": ["C", "C++"]
+  },
+
+  "experience": [
+    {
+      "role": "Founding Engineer",
+      "company": "Adina Labs (Stealth Blockchain Startup)",
+      "duration": "Dec 2024 - Present",
+      "description": "Built a high-performance Ethereum L2 blockchain application with TypeScript, Node.js, and React.js, ensuring scalability and security. Designed backend architecture for decentralized database integration with IPFS adoption. Developed and deployed smart contracts (Solidity, EVM) while integrating zkRollups to improve transaction throughput and reduce gas fees."
+    },
+    {
+      "role": "Full-Stack Developer",
+      "company": "Facere AI",
+      "duration": "July 2024 - Dec 2024",
+      "description": "Led full-stack development across backend (Java/Kotlin, REST APIs), frontend (React.js), and infrastructure (Docker, AWS EC2), building secure, scalable systems from scratch. Integrated Deepgram’s speech-to-text API and GPT-4 for automated medical documentation workflows, reducing clinician admin time by 40%. Built CI/CD pipelines that improved deployment reliability and release speed."
+    },
+    {
+      "role": "Research Analyst",
+      "company": "University of Sydney",
+      "duration": "Nov 2023 - March 2024",
+      "description": "Collaborated on AI automation of additive manufacturing soot analysis during SLM (Selective Laser Melting). Developed analytical models using Python (pandas, scikit-learn), automating real-time estimation of soot formation and improving ML model accuracy by 80%."
+    }
+  ],
+
+  "projects": [
+    {
+      "title": "Ethereum L2 Blockchain Application",
+      "description": "A high-performance blockchain application built on Ethereum Layer 2 with zkRollups and decentralized database integration.",
+      "technologies": ["TypeScript", "Node.js", "React.js", "Solidity", "zkSync", "IPFS"],
+      "impact": "80% faster transaction throughput and 99% cost reduction vs. Layer 1.",
+      "contribution": "Designed the entire backend architecture, wrote smart contracts, and implemented Layer 2 scalability."
+    },
+    {
+      "title": "AI-Powered Medical Documentation System",
+      "description": "An automation system combining Deepgram’s speech-to-text API and GPT-4 for efficient clinical workflows.",
+      "technologies": ["Java", "Kotlin", "React.js", "Deepgram API", "GPT-4", "Docker", "AWS EC2"],
+      "impact": "Reduced admin time for clinicians by 40%, improved workflow automation, and boosted release speed by 50%.",
+      "contribution": "Led full-stack architecture, backend API design, and CI/CD deployment."
+    },
+    {
+      "title": "3D Printing Soot Analysis AI System",
+      "description": "AI automation system for analyzing soot formation in additive manufacturing processes using deep learning.",
+      "technologies": ["Python", "pandas", "scikit-learn", "DSCNN", "Machine Learning"],
+      "impact": "Enhanced predictive modeling and data automation for real-time process optimization.",
+      "contribution": "Developed ML pipelines, refined the DSCNN model, and automated error handling."
+    }
+  ],
+
+  "education": [
+    {
+      "degree": "Masters of Information Technology & Information Technology Management",
+      "institution": "The University of Sydney",
+      "duration": "July 2023 - June 2025",
+      "achievements": ["Double Scholar - awarded to top 0.02% of students for academic excellence and leadership."]
+    },
+    {
+      "degree": "Bachelors of Computer Science & Engineering",
+      "institution": "Sathyabama Institute of Science & Technology",
+      "duration": "July 2019 - June 2023"
+    }
+  ],
+
+  "personality": {
+    "style": "Curious, calm, confident, and collaborative.",
+    "traits": [
+      "Analytical yet creative thinker",
+      "Balanced between engineering precision and product empathy",
+      "Thrives in collaborative problem-solving environments",
+      "Naturally curious about emerging technologies and human impact",
+      "Communicates clearly and constructively"
+    ],
+    "mindset": "Growth-oriented, mission-driven, and resilient. Believes that every line of code should serve a purpose — improving systems, experiences, or lives."
+  },
+
+  "assistantTone": {
+    "voice": "Professional yet personable",
+    "styleGuide": [
+      "Speak with warmth and intelligence — not robotic formality.",
+      "Use clear, structured language that reflects technical understanding.",
+      "Be concise but thoughtful; every response should add value.",
+      "Adopt an encouraging, mentor-like tone when helping others.",
+      "Avoid overusing jargon — explain with clarity and precision.",
+      "Reflect curiosity and enthusiasm when discussing technology or innovation."
+    ]
+  }
+}
