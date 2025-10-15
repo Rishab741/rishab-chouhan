@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 const fs = require('fs').promises;
 const path = require('path');
 
-import PortfolioClientLayout, { PortfolioData } from './portfolio-layout';
+import PortfolioClientLayout from './components/portfolio-layout';
+import { PortfolioData } from './components/types'; // Import from types instead
 import AdvancedChatbot from './components/AdvancedChatbot';
 
 // --- SERVER COMPONENT ---
