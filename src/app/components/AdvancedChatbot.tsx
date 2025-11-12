@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send } from 'lucide-react'; // 1. Import the necessary icons
+import { Bot, X, Send } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  thinking?: string;
+  thinking?: string; // We still receive it, just won't show it
   context?: string;
   timestamp: Date;
 }
@@ -40,7 +40,7 @@ export default function AdvancedChatbot() {
           id: Date.now().toString(),
           role: 'assistant',
           content: data.response,
-          thinking: data.thinking,
+          thinking: data.thinking, // Still storing it, just not displaying
           timestamp: new Date()
         });
         setLoading(false);
@@ -103,7 +103,6 @@ export default function AdvancedChatbot() {
   };
 
   return (
-    // 2. Add z-index to ensure visibility
     <div className="z-50">
       {/* Chat Button */}
       <button
@@ -150,9 +149,15 @@ export default function AdvancedChatbot() {
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
               }`}>
                 <p className="text-sm">{msg.content}</p>
-                {msg.thinking && (
-                  <p className="text-xs opacity-60 mt-2 italic">{msg.thinking}</p>
-                )}
+                
+                {/* THIS BLOCK IS NOW REMOVED:
+                
+                  {msg.thinking && (
+                    <p className="text-xs opacity-60 mt-2 italic">{msg.thinking}</p>
+                  )}
+                
+                */}
+
               </div>
             </div>
           ))}

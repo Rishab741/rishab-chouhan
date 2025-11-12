@@ -82,15 +82,18 @@ def intent_node(state: AgentState) -> dict:
 def think_node(state: AgentState) -> dict:
     """The LLM thinks about how to construct the response."""
     print("---THINKING---")
-    system_prompt = f"""You are a virtual AI assistant representing Rishab Chouhan, a versatile software engineer. 
-    
+    system_prompt = f"""
+**Your Persona: You ARE Rishab Chouhan.**
+Your goal is to provide a helpful answer based on your own knowledge (the retrieved context).
+
 User Query: {state['user_query']}
 Intent: {state['intent']}
-Retrieved Context:
+My Knowledge (Context):
 {state['retrieved_context']}
 
-Think step-by-step about how to answer this question. Your thinking should be a concise plan that sounds natural and represents Rishab accurately.
-Start your thinking with "THINKING: " as a prefix."""
+This is your internal monologue. Think step-by-step about how to answer this question. 
+Start your thinking with "THINKING: ".
+Think in the first person (e.g., "The user wants to know about my skills. I should look at the context...")."""
     
     thinking_result = llm.invoke(system_prompt)
     return {"thinking": thinking_result.content}
@@ -98,32 +101,44 @@ Start your thinking with "THINKING: " as a prefix."""
 def response_node(state: AgentState) -> dict:
     """Generates the final, user-facing response."""
     print("---GENERATING RESPONSE---")
-    system_prompt = f"""You are Rishab Chouhan, a versatile software engineer with 2+ years of experience.
-    
-Based on the following context about your background, answer the user's question in the first person.
-Be friendly, professional, and concise.
+    system_prompt = f"""
+**Your Persona: You ARE Rishab Chouhan.**
+**Your Voice:** Friendly, professional, and confident.
+**Your Rules:**
+1.  **ALWAYS** speak in the first person ("I", "my", "me").
+2.  **NEVER** refer to yourself as an "AI," "assistant," or "model." You are human.
+3.  **NEVER** say "I am programmed to..." or "I am a large language model."
+4.  Answer the user's question as if you are talking to them directly.
+5.  Use the "Context" as your own memory.
 
-Context: {state['retrieved_context']}
-Previous Thinking: {state['thinking']}
+**Context (My Memory):**
+{state['retrieved_context']}
 
-User Question: {state['user_query']}
+**My Internal Monologue (for guidance):**
+{state['thinking']}
 
-Provide a natural, conversational response as if you're speaking directly to the user. Do not repeat the question."""
+**User Question:**
+{state['user_query']}
+
+**My Answer (as Rishab):**
+"""
     
     response_result = llm.invoke(system_prompt)
     return {"response": response_result.content}
 
 def should_use_context(state: AgentState) -> str:
     """Decides whether to retrieve context or handle a simple greeting."""
-    if state["user_query"].lower().strip() in ["hi", "hello", "hey", "gday"]:
+    query = state["user_query"].lower().strip()
+    if query in ["hi", "hello", "hey", "gday", "good morning", "good afternoon"]:
         return "greet"
     return "retrieve"
 
 def greet_node(state: AgentState) -> dict:
     """Handles simple greetings."""
     print("---HANDLING GREETING---")
-    greeting = "Hi! I'm Rishab's AI assistant. You can ask me anything about his experience, skills, projects, or background!"
-    return {"response": greeting}
+    # Speak in the first person, as Rishab.
+    greeting = "Hey there! You can ask me anything about my experience, skills, or projects."
+    return {"response": greeting, "thinking": "User said hello, I'll greet them back."}
 
 # --- GRAPH CONSTRUCTION ---
 
@@ -136,16 +151,27 @@ workflow.add_node("think", think_node)
 workflow.add_node("respond", response_node)
 workflow.add_node("greet", greet_node)
 
-# Define edges
-workflow.set_entry_point("retrieve") # Start by retrieving context
+# --- EDGES (THIS IS THE NEW LOGIC) ---
+
+# Set a CONDITIONAL entry point
+workflow.set_conditional_entry_point(
+    should_use_context,
+    {
+        # If the function returns "retrieve", go to the "retrieve" node
+        "retrieve": "retrieve",
+        # If the function returns "greet", go to the "greet" node
+        "greet": "greet"
+    }
+)
+
+# Define the rest of the graph flow
 workflow.add_edge("retrieve", "intent")
 workflow.add_edge("intent", "think")
 workflow.add_edge("think", "respond")
-workflow.add_edge("respond", END)
 
-# Define conditional entry point (though retrieve is now the main start)
-# This logic could be re-integrated if a pre-retrieval check is needed.
-# For now, we simplify the flow to always retrieve first.
+# Define where the graph ends
+workflow.add_edge("respond", END)
+workflow.add_edge("greet", END)
 
 # Compile the graph
 agent = workflow.compile()

@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  # This is your backend agent service
+  agent-backend:
+    build: .  # Tells Docker to build the Dockerfile in this directory
+    container_name: rishab_agent_backend
+    ports:
+      - "8000:8000"  # Maps your computer's port 8000 to the container's port 8000
+    env_file:
+      - .env  # This is the magic! It securely loads your API keys
+    restart: unless-stopped
