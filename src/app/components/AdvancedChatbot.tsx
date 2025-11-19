@@ -7,7 +7,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  thinking?: string; // We still receive it, just won't show it
+  thinking?: string;
   context?: string;
   timestamp: Date;
 }
@@ -20,42 +20,78 @@ export default function AdvancedChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
+  // 1. FIX: Helper function to generate truly unique IDs
+  // Prevents the "Encountered two children with the same key" error
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
   // Initialize WebSocket connection
   useEffect(() => {
     if (isOpen) {
-      // Use the production WebSocket URL when deployed
-      const wsUrl = process.env.NODE_ENV === 'production'
-        ? 'wss://your-production-backend.onrender.com/ws/chat' // Replace with your deployed backend URL
-        : 'ws://localhost:8000/ws/chat';
       
-      socketRef.current = new WebSocket(wsUrl);
+      // 2. FIX: Robust URL Logic for Codespaces
+      let wsUrl;
+      const hostname = window.location.hostname;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // Local Machine
+        wsUrl = 'ws://localhost:8000/ws/chat';
+      } else if (hostname.includes('github.dev') || hostname.includes('gitpod.io')) {
+        // Cloud Codespaces
+        // We must use WSS and replace the frontend port (likely 3000) with backend (8000)
+        // This regex finds the port number in the URL (e.g., -3000) and replaces it
+        let backendHost = hostname.replace(/-\d+(?=\.app\.github\.dev)/, '-8000');
+        
+        // Fallback: if regex didn't catch it, try direct string replacement
+        if (backendHost === hostname) {
+            backendHost = hostname.replace('3000', '8000');
+        }
+        
+        wsUrl = `${protocol}//${backendHost}/ws/chat`;
+      } else {
+        // Production Deployment
+        wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-production-backend.onrender.com/ws/chat';
+      }
+
+      console.log("🚀 Attempting connection to:", wsUrl);
+
+      try {
+        socketRef.current = new WebSocket(wsUrl);
+      } catch (e) {
+        console.error("Socket creation failed", e);
+      }
       
-      socketRef.current.onopen = () => {
-        console.log("WebSocket connection established.");
-      };
+      if (socketRef.current) {
+        socketRef.current.onopen = () => {
+          console.log("WebSocket connection established.");
+        };
 
-      socketRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        addMessage({
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: data.response,
-          thinking: data.thinking, // Still storing it, just not displaying
-          timestamp: new Date()
-        });
-        setLoading(false);
-      };
-
-      socketRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        addMessage({
-            id: Date.now().toString(),
+        socketRef.current.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          addMessage({
+            id: generateId(), // Use unique ID
             role: 'assistant',
-            content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
+            content: data.response,
+            thinking: data.thinking, 
             timestamp: new Date()
-        });
-        setLoading(false);
-      };
+          });
+          setLoading(false);
+        };
+
+        socketRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          // Only show error message to user if we aren't just closing
+          if (socketRef.current?.readyState !== WebSocket.CLOSED) {
+             addMessage({
+                id: generateId(),
+                role: 'assistant',
+                content: "Sorry, I'm having trouble connecting. Please ensure Port 8000 is Public.",
+                timestamp: new Date()
+            });
+            setLoading(false);
+          }
+        };
+      }
     }
 
     return () => {
@@ -75,7 +111,7 @@ export default function AdvancedChatbot() {
 
     // Add user message
     addMessage({
-      id: Date.now().toString(),
+      id: generateId(), // Use unique ID
       role: 'user',
       content: input,
       timestamp: new Date()
@@ -91,9 +127,9 @@ export default function AdvancedChatbot() {
       }));
     } else {
         addMessage({
-            id: Date.now().toString(),
+            id: generateId(),
             role: 'assistant',
-            content: "I'm not connected right now. Please try opening the chat again.",
+            content: "I'm not connected right now. Please try closing and reopening the chat.",
             timestamp: new Date()
         });
         setLoading(false);
@@ -149,15 +185,6 @@ export default function AdvancedChatbot() {
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
               }`}>
                 <p className="text-sm">{msg.content}</p>
-                
-                {/* THIS BLOCK IS NOW REMOVED:
-                
-                  {msg.thinking && (
-                    <p className="text-xs opacity-60 mt-2 italic">{msg.thinking}</p>
-                  )}
-                
-                */}
-
               </div>
             </div>
           ))}
