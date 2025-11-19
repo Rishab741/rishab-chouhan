@@ -8,20 +8,26 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Correctly import the agent using a relative import
+# Import the agent - UPDATED FOR RENDER
 try:
+    # Try relative import first (for local development)
     from .langgraph_agent import agent
-except ImportError as e:
-    print(f"Error importing agent: {e}")
-    agent = None 
+except ImportError:
+    try:
+        # Fallback for Render deployment
+        from langgraph_agent import agent
+    except ImportError as e:
+        print(f"Error importing agent: {e}")
+        agent = None 
 
 app = FastAPI(title="Virtual Rishab AI Assistant")
 
-# CORS configuration to allow your frontend to connect
-cors_origin = os.getenv("CORS_ORIGIN", "http://localhost:3000")
+# CORS configuration - UPDATED FOR RENDER
+# Allow multiple origins including Render and local development
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[cors_origin],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -94,7 +100,41 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket Error: {e}")
         await websocket.send_json({"error": str(e), "type": "error"})
 
+@app.get("/")
+def root():
+    """Root endpoint that returns basic API info."""
+    return {
+        "status": "healthy",
+        "service": "Virtual Rishab AI Assistant",
+        "message": "API is running successfully",
+        "endpoints": {
+            "health": "/health",
+            "chat": "/api/chat",
+            "websocket": "/ws/chat"
+        }
+    }
+
 @app.get("/health")
 def health_check():
-    """A simple endpoint to confirm the server is running."""
-    return {"status": "ok"}
+    """A comprehensive health check endpoint for Render."""
+    return {
+        "status": "healthy",
+        "service": "Virtual Rishab AI Assistant",
+        "agent_initialized": agent is not None,
+        "environment": "production" if os.getenv('RENDER') else "development"
+    }
+
+# Server startup - ADDED FOR RENDER
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Get port from environment variable (Render provides this)
+    port = int(os.environ.get("PORT", 8000))
+    
+    # Start the server
+    uvicorn.run(
+        "main:app",  # Updated for Render - assumes this file is main.py
+        host="0.0.0.0",  # Important: listen on all interfaces
+        port=port,
+        reload=False  # Disable reload in production
+    )
