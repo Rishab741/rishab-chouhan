@@ -11,12 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Copy your application's source code into the container
-# This copies your 'src' folder into the container's 'app' directory
-COPY ./src ./src
+COPY . .
 
 # 6. Expose the port your FastAPI app runs on
 EXPOSE 8000
 
-# 7. Define the command to run your application
-# This is the same command we used to fix your server, now containerized!
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 7. Define the command to run your application with dynamic port
+CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}
