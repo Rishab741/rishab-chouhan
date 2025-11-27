@@ -8,20 +8,26 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Correctly import the agent using a relative import
+# Import the agent function instead of the agent instance
 try:
-    from .langgraph_agent import agent
-except ImportError as e:
-    print(f"Error importing agent: {e}")
-    agent = None 
+    # Try relative import first (for local development)
+    from .langgraph_agent import get_agent
+except ImportError:
+    try:
+        # Fallback for Render deployment
+        from langgraph_agent import get_agent
+    except ImportError as e:
+        print(f"Error importing agent: {e}")
+        get_agent = None
 
 app = FastAPI(title="Virtual Rishab AI Assistant")
 
-# CORS configuration to allow your frontend to connect
-cors_origin = os.getenv("CORS_ORIGIN", "http://localhost:3000")
+# CORS configuration - UPDATED FOR RENDER
+# Allow multiple origins including Render and local development
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[cors_origin],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,11 +43,22 @@ class ChatResponse(BaseModel):
     thinking: str
     retrieved_context: str
 
+def get_agent_safe():
+    """Safely get the agent instance with error handling"""
+    if get_agent is None:
+        return None
+    try:
+        return get_agent()
+    except Exception as e:
+        print(f"Error getting agent: {e}")
+        return None
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Processes a user message via HTTP and returns the AI's response."""
+    agent = get_agent_safe()
     if not agent:
-        raise HTTPException(status_code=500, detail="Agent not initialized correctly.")
+        raise HTTPException(status_code=500, detail="Agent not initialized correctly. Check environment variables.")
     
     try:
         # Initialize the state for the LangGraph agent
@@ -67,8 +84,10 @@ async def chat(request: ChatRequest):
 async def websocket_endpoint(websocket: WebSocket):
     """Handles real-time chat communication via WebSocket."""
     await websocket.accept()
+    
+    agent = get_agent_safe()
     if not agent:
-        await websocket.send_json({"error": "Agent not initialized", "type": "error"})
+        await websocket.send_json({"error": "Agent not initialized. Check environment variables.", "type": "error"})
         await websocket.close()
         return
 
@@ -94,7 +113,69 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket Error: {e}")
         await websocket.send_json({"error": str(e), "type": "error"})
 
+@app.get("/")
+def root():
+    """Root endpoint that returns basic API info."""
+    agent = get_agent_safe()
+    return {
+        "status": "healthy",
+        "service": "Virtual Rishab AI Assistant",
+        "message": "API is running successfully",
+        "agent_initialized": agent is not None,
+        "endpoints": {
+            "health": "/health",
+            "chat": "/api/chat",
+            "websocket": "/ws/chat"
+        }
+    }
+
 @app.get("/health")
 def health_check():
-    """A simple endpoint to confirm the server is running."""
-    return {"status": "ok"}
+    """A comprehensive health check endpoint for Render."""
+    agent = get_agent_safe()
+    
+    # Check environment variables
+    env_vars_status = {
+        "GOOGLE_API_KEY": bool(os.getenv("GOOGLE_API_KEY")),
+        "PINECONE_API_KEY": bool(os.getenv("PINECONE_API_KEY")),
+        "PINECONE_ENVIRONMENT": bool(os.getenv("PINECONE_ENVIRONMENT")),
+        "PINECONE_INDEX": bool(os.getenv("PINECONE_INDEX")),
+    }
+    
+    all_env_vars_set = all(env_vars_status.values())
+    
+    return {
+        "status": "healthy" if (agent is not None and all_env_vars_set) else "degraded",
+        "service": "Virtual Rishab AI Assistant",
+        "agent_initialized": agent is not None,
+        "environment_variables_set": all_env_vars_set,
+        "environment_variables_detail": env_vars_status,
+        "environment": "production" if os.getenv('RENDER') else "development"
+    }
+
+@app.get("/debug/env")
+def debug_environment():
+    """Debug endpoint to check environment variables (remove in production if needed)."""
+    return {
+        "GOOGLE_API_KEY_set": bool(os.getenv("GOOGLE_API_KEY")),
+        "PINECONE_API_KEY_set": bool(os.getenv("PINECONE_API_KEY")),
+        "PINECONE_ENVIRONMENT_set": bool(os.getenv("PINECONE_ENVIRONMENT")),
+        "PINECONE_INDEX_set": bool(os.getenv("PINECONE_INDEX")),
+        "CORS_ORIGINS": os.getenv("CORS_ORIGINS"),
+        "RENDER": os.getenv("RENDER"),
+    }
+
+# Server startup - ADDED FOR RENDER
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Get port from environment variable (Render provides this)
+    port = int(os.environ.get("PORT", 8000))
+    
+    # Start the server
+    uvicorn.run(
+        "main:app",  # Updated for Render - assumes this file is main.py
+        host="0.0.0.0",  # Important: listen on all interfaces
+        port=port,
+        reload=False  # Disable reload in production
+    )

@@ -13,6 +13,8 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string; // We still receive it, just won't show it
+  context?: string;
   timestamp: Date;
 }
 
@@ -26,50 +28,46 @@ export default function AdvancedChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
+  // 1. FIX: Helper function to generate truly unique IDs
+  // Prevents the "Encountered two children with the same key" error
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
   // 1. WebSocket Connection Logic
   useEffect(() => {
     if (isOpen) {
-      setConnectionStatus('connecting');
-
-      // --- URL CONFIGURATION ---
-      // Using Render URL for testing. 
-      const wsUrl = 'wss://rishab-chouhan.onrender.com/ws/chat';
+      // Use the production WebSocket URL when deployed
+      const wsUrl = process.env.NODE_ENV === 'production'
+        ? 'wss://your-production-backend.onrender.com/ws/chat' // Replace with your deployed backend URL
+        : 'ws://localhost:8000/ws/chat';
       
-      console.log("Attempting connection to:", wsUrl);
+      socketRef.current = new WebSocket(wsUrl);
+      
+      socketRef.current.onopen = () => {
+        console.log("WebSocket connection established.");
+      };
 
-      try {
-        socketRef.current = new WebSocket(wsUrl);
-        
-        socketRef.current.onopen = () => {
-          console.log("WebSocket connection established.");
-          setConnectionStatus('connected');
-        };
-        
-        socketRef.current.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          addMessage({
-            id: generateId(), // FIX: Custom ID generator
+      socketRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: data.response,
+          thinking: data.thinking, // Still storing it, just not displaying
+          timestamp: new Date()
+        });
+        setLoading(false);
+      };
+
+      socketRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        addMessage({
+            id: Date.now().toString(),
             role: 'assistant',
-            content: data.response,
+            content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
             timestamp: new Date()
-          });
-          setLoading(false);
-        };
-
-        socketRef.current.onclose = () => {
-          console.log("WebSocket connection closed.");
-          setConnectionStatus('disconnected');
-        };
-
-        socketRef.current.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setConnectionStatus('disconnected');
-          setLoading(false);
-        };
-      } catch (e) {
-        console.error("Connection failed immediately", e);
-        setConnectionStatus('disconnected');
-      }
+        });
+        setLoading(false);
+      };
     }
 
     return () => {
@@ -91,19 +89,9 @@ export default function AdvancedChatbot() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    // Connection check
-    if (socketRef.current?.readyState !== WebSocket.OPEN) {
-        addMessage({
-            id: generateId(), // FIX: Custom ID generator
-            role: 'assistant',
-            content: "⚠️ I'm not connected to the server. Please close and reopen the chat to reconnect.",
-            timestamp: new Date()
-        });
-        return;
-    }
-
-    const userMsg: Message = {
-      id: generateId(), // FIX: Custom ID generator
+    // Add user message
+    addMessage({
+      id: Date.now().toString(),
       role: 'user',
       content: input,
       timestamp: new Date()
@@ -113,10 +101,23 @@ export default function AdvancedChatbot() {
     setInput('');
     setLoading(true);
 
-    socketRef.current.send(JSON.stringify({
-      text: input,
-      conversation_id: 'default'
-    }));
+    // Send via WebSocket
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        text: input,
+        conversation_id: 'default'
+      }));
+    } else {
+        addMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: "I'm not connected right now. Please try opening the chat again.",
+            timestamp: new Date()
+        });
+        setLoading(false);
+    }
+
+    setInput('');
   };
 
   return (
@@ -158,60 +159,34 @@ export default function AdvancedChatbot() {
               </button>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-              {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
-                    <Terminal className="w-8 h-8 text-white" />
-                  </div>
-                  <p className="text-sm text-zinc-400 max-w-[200px]">
-                    Ask about my technical skills, projects, or professional background.
-                  </p>
-                </div>
-              )}
-              
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                  <div className={`
-                    w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-white/5
-                    ${msg.role === 'user' ? 'bg-zinc-800' : 'bg-gradient-to-br from-indigo-500/10 to-purple-500/10'}
-                  `}>
-                    {msg.role === 'user' ? <User className="w-4 h-4 text-zinc-400" /> : <Bot className="w-4 h-4 text-indigo-400" />}
-                  </div>
-                  
-                  <div className={`
-                    max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm
-                    ${msg.role === 'user' 
-                      ? 'bg-zinc-800 text-white rounded-tr-sm border border-zinc-700' 
-                      : 'bg-[#1a1a1a] border border-white/5 text-zinc-200 rounded-tl-sm'}
-                  `}>
-                    {msg.content}
-                  </div>
-                </motion.div>
-              ))}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.map(msg => (
+            <div
+              key={msg.id}
+              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-xs px-4 py-3 rounded-2xl ${
+                msg.role === 'user'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+              }`}>
+                <p className="text-sm">{msg.content}</p>
+                
+                {/* THIS BLOCK IS NOW REMOVED:
+                
+                  {msg.thinking && (
+                    <p className="text-xs opacity-60 mt-2 italic">{msg.thinking}</p>
+                  )}
+                
+                */}
 
-              {loading && (
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }}
-                  className="flex gap-3"
-                >
-                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5 flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-                  </div>
-                  <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1">
-                    <span className="text-xs text-zinc-500 animate-pulse">Thinking...</span>
-                  </div>
-                </motion.div>
-              )}
-              <div ref={messagesEndRef} />
+              </div>
             </div>
+          ))}
+          {loading && <div className="text-center text-sm text-gray-500">Thinking...</div>}
+          <div ref={messagesEndRef} />
+        </div>
 
             {/* Input Area */}
             <div className="p-4 bg-[#0a0a0a] border-t border-white/5">

@@ -3,36 +3,74 @@ from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain.agents import tool
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone as PineconeClient
 
-# --- INITIALIZATION ---
+# --- LAZY INITIALIZATION ---
 
-# Initialize Pinecone client
-pinecone_api_key = os.getenv("PINECONE_API_KEY")
-pinecone_env = os.getenv("PINECONE_ENVIRONMENT")
-pinecone_index_name = os.getenv("PINECONE_INDEX")
-pinecone = PineconeClient(api_key=pinecone_api_key, environment=pinecone_env)
+# Initialize variables as None
+pinecone = None
+embeddings = None
+vector_store = None
+llm = None
+agent = None
 
-# Initialize embeddings model
-embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+def initialize_components():
+    """Initialize all components only when needed"""
+    global pinecone, embeddings, vector_store, llm, agent
+    
+    # Only initialize if not already initialized
+    if pinecone is not None:
+        return
+    
+    # Check for required environment variables
+    pinecone_api_key = os.getenv("PINECONE_API_KEY")
+    pinecone_env = os.getenv("PINECONE_ENVIRONMENT") 
+    pinecone_index_name = os.getenv("PINECONE_INDEX")
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    
+    if not all([pinecone_api_key, pinecone_env, pinecone_index_name, google_api_key]):
+        missing = []
+        if not pinecone_api_key: missing.append("PINECONE_API_KEY")
+        if not pinecone_env: missing.append("PINECONE_ENVIRONMENT")
+        if not pinecone_index_name: missing.append("PINECONE_INDEX")
+        if not google_api_key: missing.append("GOOGLE_API_KEY")
+        raise ValueError(f"Missing environment variables: {', '.join(missing)}")
+    
+    # Initialize Pinecone client
+    from pinecone import Pinecone as PineconeClient
+    pinecone = PineconeClient(api_key=pinecone_api_key, environment=pinecone_env)
 
-# Initialize LangChain vector store with Pinecone
-vector_store = PineconeVectorStore(
-    index_name=pinecone_index_name, 
-    embedding=embeddings
-)
+    # Initialize embeddings model
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=google_api_key
+    )
 
-# Initialize LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite-001",
-    temperature=0.7
-    # The API key is automatically read from the GOOGLE_API_KEY environment variable
-)
+    # Initialize LangChain vector store with Pinecone
+    from langchain_pinecone import PineconeVectorStore
+    vector_store = PineconeVectorStore(
+        index_name=pinecone_index_name, 
+        embedding=embeddings
+    )
+
+    # Initialize LLM
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-lite-001",
+        temperature=0.7,
+        google_api_key=google_api_key
+    )
+
+def get_agent():
+    """Get or create the agent instance"""
+    global agent
+    if agent is None:
+        initialize_components()
+        # Build the graph (your existing graph code)
+        agent = build_agent_graph()
+    return agent
 
 # --- AGENT STATE DEFINITION ---
-
 class AgentState(TypedDict):
     messages: Annotated[List, add_messages]
     user_query: str
@@ -42,14 +80,14 @@ class AgentState(TypedDict):
     response: str
 
 # --- TOOLS ---
-
 @tool
 def retrieve_context(query: str) -> str:
     """Retrieve relevant portfolio context from the vector database."""
+    initialize_components()  # Ensure components are initialized
     results = vector_store.similarity_search(query, k=5)
     return "\n".join([doc.page_content for doc in results])
 
-@tool
+@tool  
 def analyze_intent(query: str) -> str:
     """Determine the user's intent from their question to categorize it."""
     intents = {
@@ -66,7 +104,6 @@ def analyze_intent(query: str) -> str:
     return "general"
 
 # --- NODE FUNCTIONS ---
-
 def retrieve_node(state: AgentState) -> dict:
     """Retrieves relevant documents from the vector store."""
     print("---RETRIEVING CONTEXT---")
@@ -82,6 +119,8 @@ def intent_node(state: AgentState) -> dict:
 def think_node(state: AgentState) -> dict:
     """The LLM thinks about how to construct the response."""
     print("---THINKING---")
+    initialize_components()  # Ensure components are initialized
+    
     system_prompt = f"""
 **Your Persona: You ARE Rishab Chouhan.**
 Your goal is to provide a helpful answer based on your own knowledge (the retrieved context).
@@ -101,6 +140,8 @@ Think in the first person (e.g., "The user wants to know about my skills. I shou
 def response_node(state: AgentState) -> dict:
     """Generates the final, user-facing response."""
     print("---GENERATING RESPONSE---")
+    initialize_components()  # Ensure components are initialized
+    
     system_prompt = f"""
 **Your Persona: You ARE Rishab Chouhan.**
 **Your Voice:** Friendly, professional, and confident.
@@ -136,44 +177,45 @@ def should_use_context(state: AgentState) -> str:
 def greet_node(state: AgentState) -> dict:
     """Handles simple greetings."""
     print("---HANDLING GREETING---")
-    # Speak in the first person, as Rishab.
     greeting = "Hey there! You can ask me anything about my experience, skills, or projects."
     return {"response": greeting, "thinking": "User said hello, I'll greet them back."}
 
 # --- GRAPH CONSTRUCTION ---
+def build_agent_graph():
+    """Build and return the compiled agent"""
+    workflow = StateGraph(AgentState)
 
-workflow = StateGraph(AgentState)
+    # Add nodes
+    workflow.add_node("retrieve", retrieve_node)
+    workflow.add_node("intent", intent_node)
+    workflow.add_node("think", think_node)
+    workflow.add_node("respond", response_node)
+    workflow.add_node("greet", greet_node)
 
-# Add nodes
-workflow.add_node("retrieve", retrieve_node)
-workflow.add_node("intent", intent_node)
-workflow.add_node("think", think_node)
-workflow.add_node("respond", response_node)
-workflow.add_node("greet", greet_node)
+    # Set a CONDITIONAL entry point
+    workflow.set_conditional_entry_point(
+        should_use_context,
+        {
+            "retrieve": "retrieve",
+            "greet": "greet"
+        }
+    )
 
-# --- EDGES (THIS IS THE NEW LOGIC) ---
+    # Define the rest of the graph flow
+    workflow.add_edge("retrieve", "intent")
+    workflow.add_edge("intent", "think")
+    workflow.add_edge("think", "respond")
+    workflow.add_edge("respond", END)
+    workflow.add_edge("greet", END)
 
-# Set a CONDITIONAL entry point
-workflow.set_conditional_entry_point(
-    should_use_context,
-    {
-        # If the function returns "retrieve", go to the "retrieve" node
-        "retrieve": "retrieve",
-        # If the function returns "greet", go to the "greet" node
-        "greet": "greet"
-    }
-)
+    # Compile the graph
+    compiled_agent = workflow.compile()
+    print("LangGraph agent compiled successfully!")
+    return compiled_agent
 
-# Define the rest of the graph flow
-workflow.add_edge("retrieve", "intent")
-workflow.add_edge("intent", "think")
-workflow.add_edge("think", "respond")
-
-# Define where the graph ends
-workflow.add_edge("respond", END)
-workflow.add_edge("greet", END)
-
-# Compile the graph
-agent = workflow.compile()
-
-print("LangGraph agent compiled successfully!")
+# Initialize agent when module is imported (optional - or use get_agent() when needed)
+try:
+    agent = get_agent()
+except Exception as e:
+    print(f"Agent initialization failed: {e}")
+    agent = None
