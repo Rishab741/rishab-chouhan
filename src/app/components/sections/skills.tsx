@@ -1,53 +1,74 @@
 'use client';
 
 import React from 'react';
-import { PortfolioData } from '../types';
-import { AnimatedSection, SectionHeader } from '../ui';
-// Import the animation component from its correct location
+import { motion } from 'framer-motion';
+
+// FIX: Correct Relative Imports based on your provided paths
+import { PortfolioData } from '../types'; 
+import { SectionTitle } from '../ui/DesignSystem';
 import { SkillConstellation } from '../SkillConstellation';
+
+const SkillCategory = ({ category, skills, index }: { category: string; skills: string[], index: number }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        viewport={{ once: true }}
+        className="relative"
+    >
+        <div className="absolute -left-4 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4 font-mono pl-4">
+            {category}
+        </h3>
+        <div className="flex flex-wrap gap-2 pl-4">
+            {skills.map(skill => (
+                <span 
+                    key={skill}
+                    className="px-3 py-1.5 text-sm text-gray-300 bg-white/5 border border-white/5 rounded hover:border-white/20 hover:text-white hover:bg-white/10 transition-all cursor-default"
+                >
+                    {skill}
+                </span>
+            ))}
+        </div>
+    </motion.div>
+);
 
 interface SkillsProps {
     portfolioData: PortfolioData;
 }
 
-// This is the named export 'Skills' that your layout needs
 export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
-    // Process the data to get a flat array of skills
+    // Flatten skills to pass to the constellation physics engine
     const allSkills = Object.values(portfolioData.skills).flat();
-    
-    return (
-        <section id="skills" className="container mx-auto px-6 max-w-7xl py-24 lg:py-36">
-            <SectionHeader subtitle="Expertise" title="Technical" highlight="Arsenal" />
 
-            {/* This section contains the animation */}
-            <AnimatedSection className="mb-24">
-                <SkillConstellation skills={allSkills.slice(0, 16)} />
-            </AnimatedSection>
-            
-            {/* This section contains the categorized lists of skills */}
-            <div className="space-y-16">
-                {Object.entries(portfolioData.skills).map(([category, skills], i) => (
-                    <AnimatedSection key={category} delay={i * 200}>
-                        <div className="text-center mb-12">
-                            <h3 className="text-3xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text inline-block relative">
-                                {category}
-                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50"></div>
-                            </h3>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-3">
-                            {skills.map((skill) => (
-                                <div
-                                    key={skill}
-                                    className="px-6 py-3 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-xl rounded-full border border-blue-200/30 dark:border-blue-700/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 cursor-default group"
-                                >
-                                    <span className="text-blue-700 dark:text-purple-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text font-semibold transition-all duration-300">
-                                        {skill}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </AnimatedSection>
-                ))}
+    return (
+        <section id="skills" className="py-32 relative">
+            <div className="container mx-auto px-6 max-w-7xl">
+                
+                {/* Section Header from DesignSystem */}
+                <SectionTitle 
+                    title="Technical Stack" 
+                    subtitle="Capabilities" 
+                />
+
+                <div className="grid lg:grid-cols-3 gap-12 lg:gap-24">
+                    {/* Left: The Interactive Constellation (Imported Component) */}
+                    <div className="lg:col-span-2">
+                        <SkillConstellation skills={allSkills} />
+                    </div>
+
+                    {/* Right: The Structured List */}
+                    <div className="space-y-12 py-8">
+                        {Object.entries(portfolioData.skills).map(([category, skills], i) => (
+                            <SkillCategory 
+                                key={category} 
+                                category={category} 
+                                skills={skills} 
+                                index={i} 
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
         </section>
     );

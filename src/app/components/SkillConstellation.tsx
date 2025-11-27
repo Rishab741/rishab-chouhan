@@ -1,308 +1,304 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
-import { Dna, Cpu, Database, Cloud, Code, Puzzle } from 'lucide-react';
-import { PortfolioData } from './types';
+import React, { useRef, useEffect } from 'react';
 
-// --- UI Components (Moved here to resolve path errors) ---
-
-interface SectionHeaderProps {
-    subtitle: string;
-    title: string;
-    highlight: string;
-}
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({ subtitle, title, highlight }) => (
-    <div className="text-center mb-16">
-        <p className="text-lg font-semibold text-purple-500 mb-2">{subtitle}</p>
-        <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-800 dark:text-white">
-            {title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">{highlight}</span>
-        </h2>
-        <div className="mt-4 w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto rounded-full"></div>
-    </div>
-);
-
-interface AnimatedSectionProps {
-    children: React.ReactNode;
-    className?: string;
-    delay?: number;
-}
-
-const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children, className, delay = 0 }) => {
-    const ref = React.useRef(null);
-    const isInView = useInView(ref, { once: true, amount: 0.2 });
-
-    const variants = {
-        hidden: { opacity: 0, y: 50 },
-        visible: { opacity: 1, y: 0 },
-    };
-
-    return (
-        <motion.div
-            ref={ref}
-            className={className}
-            initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={variants}
-            transition={{ duration: 0.6, delay: delay / 1000 }}
-        >
-            {children}
-        </motion.div>
-    );
-};
-
-
-// --- SkillConstellation Component ---
-
-const getSkillStyle = (skill: string) => {
+// --- Icon Slug Helper ---
+const getIconSlug = (skill: string) => {
     const s = skill.toLowerCase();
-    const iconProps = { className: "w-full h-full text-white/90" }; // Use full size for scaling
     
-    let style = {
-        Icon: () => <Puzzle {...iconProps} />,
-        bgColor: 'bg-slate-700/80',
-        glowColor: 'shadow-slate-500/50'
-    };
-
-    if (['react', 'next', 'javascript', 'typescript', 'flutter', 'dart'].some(tech => s.includes(tech))) {
-        style.bgColor = 'bg-cyan-900/80'; style.glowColor = 'shadow-cyan-500/50'; style.Icon = () => <Dna {...iconProps} />;
-    } else if (['node', 'express', 'nest', 'python', 'go', 'rust', 'java', 'kotlin', 'php', 'spring'].some(tech => s.includes(tech))) {
-        style.bgColor = 'bg-indigo-900/80'; style.glowColor = 'shadow-indigo-500/50'; style.Icon = () => <Cpu {...iconProps} />;
-    } else if (['mongo', 'postgre', 'kafka'].some(tech => s.includes(tech))) {
-        style.bgColor = 'bg-green-900/80'; style.glowColor = 'shadow-green-500/50'; style.Icon = () => <Database {...iconProps} />;
-    } else if (['aws', 'gcp', 'docker', 'kubernetes', 'linux', 'git'].some(tech => s.includes(tech))) {
-        style.bgColor = 'bg-amber-900/80'; style.glowColor = 'shadow-amber-500/50'; style.Icon = () => <Cloud {...iconProps} />;
-    } else if (['solidity', 'ipfs', 'ethereum', 'zksync', 'c++', 'c'].some(tech => s.includes(tech))) {
-        style.bgColor = 'bg-violet-900/80'; style.glowColor = 'shadow-violet-500/50'; style.Icon = () => <Code {...iconProps} />;
-    }
-
-    return style;
+    if (s === 'c++') return 'cplusplus';
+    if (s === 'c#') return 'csharp';
+    if (s === '.net') return 'dotnet';
+    if (s.includes('react')) return 'react';
+    if (s.includes('next')) return 'nextdotjs';
+    if (s.includes('node')) return 'nodedotjs';
+    if (s.includes('aws')) return 'amazonaws';
+    if (s.includes('mongo')) return 'mongodb';
+    if (s.includes('google') || s.includes('gcp')) return 'googlecloud';
+    if (s.includes('tailwind')) return 'tailwindcss';
+    if (s.includes('postgres')) return 'postgresql';
+    if (s.includes('express')) return 'express';
+    if (s.includes('flutter')) return 'flutter';
+    if (s.includes('dart')) return 'dart';
+    if (s.includes('docker')) return 'docker';
+    if (s.includes('kubernetes')) return 'kubernetes';
+    
+    return s.replace(/\./g, 'dot').replace(/\s+/g, '');
 };
 
-interface SkillNodeProps {
+// --- Glow Colors ---
+const getSkillColor = (skill: string) => {
+    const s = skill.toLowerCase();
+    if (['react', 'typescript', 'docker', 'kubernetes', 'go', 'python'].some(t => s.includes(t))) return 'bg-blue-500 shadow-blue-500/50';
+    if (['javascript', 'aws', 'linux', 'git'].some(t => s.includes(t))) return 'bg-yellow-500 shadow-yellow-500/50';
+    if (['node', 'mongo', 'vue', 'spring'].some(t => s.includes(t))) return 'bg-green-500 shadow-green-500/50';
+    if (['html', 'css', 'java', 'rust', 'swift'].some(t => s.includes(t))) return 'bg-orange-500 shadow-orange-500/50';
+    if (['graphql', 'c#', 'c++', 'redux'].some(t => s.includes(t))) return 'bg-purple-500 shadow-purple-500/50';
+    return 'bg-white shadow-white/50';
+};
+
+// --- Types ---
+type NodeData = {
+    id: number;
     skill: string;
+    slug: string;
     x: number;
     y: number;
-    size: number;
-    isNearby: boolean;
-}
-
-const SkillNode: React.FC<SkillNodeProps> = ({ skill, x, y, size, isNearby }) => {
-    const { Icon, bgColor, glowColor } = getSkillStyle(skill);
-    const nodeSize = 64 * size;
-
-    return (
-        <motion.div
-            className="absolute group cursor-pointer"
-            initial={{ x: x - nodeSize / 2, y: y - nodeSize / 2, scale: 1 }}
-            animate={{ x: x - nodeSize / 2, y: y - nodeSize / 2, scale: isNearby ? 1.25 : 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            style={{ width: nodeSize, height: nodeSize }}
-        >
-            <div className="relative w-full h-full flex items-center justify-center">
-                <motion.div
-                    className={`absolute inset-0 rounded-full blur-xl transition-all duration-300 ${isNearby ? glowColor : ''}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isNearby ? 0.7 : 0 }}
-                />
-                <div className={`relative w-[70%] h-[70%] ${bgColor} rounded-full shadow-lg border-2 border-white/10 flex items-center justify-center p-2 backdrop-blur-sm`}>
-                    <div className="relative z-10 w-full h-full"><Icon /></div>
-                </div>
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-900/80 border border-purple-500/50 rounded-lg text-xs font-semibold text-purple-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none z-30 backdrop-blur-sm">
-                    {skill}
-                </div>
-            </div>
-        </motion.div>
-    );
+    vx: number;
+    vy: number;
+    phase: number; // For breathing animation
 };
 
 interface SkillConstellationProps {
     skills: string[];
 }
 
-interface NodeState {
-    id: number;
-    skill: string;
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    size: number;
-}
-
 export const SkillConstellation: React.FC<SkillConstellationProps> = ({ skills }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const nodesRef = useRef<NodeState[]>([]);
-    const mousePos = useRef({ x: 0, y: 0 });
-    const [tick, setTick] = useState(0);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     
-    // --- Physics and Animation Constants ---
-    const MOUSE_REPEL_RADIUS = 150;
-    const REPULSION_STRENGTH = 0.8;
-    const DAMPING_FACTOR = 0.98;
-    const NODE_CONNECTION_RADIUS = 120;
+    // DOM Refs
+    const nodeElementsRef = useRef<{ [key: number]: HTMLDivElement | null }>({});
+    const textElementsRef = useRef<{ [key: number]: HTMLDivElement | null }>({});
+    
+    // State Refs
+    const nodesRef = useRef<NodeData[]>([]);
+    const mousePos = useRef({ x: -9999, y: -9999 });
+    const dimensions = useRef({ w: 0, h: 0 });
 
+    // --- Tuning Constants ---
+    const MAX_NODES = 40;
+    const SPEED = 0.15; // Slow, ambient drift
+    const CONNECTION_RADIUS = 150;
+    const SPOTLIGHT_RADIUS = 250; // How far the mouse effects nodes
+
+    // 1. Init & Resize
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container || nodesRef.current.length > 0) return;
-        nodesRef.current = skills.map((skill, i) => ({
-            id: i, skill,
-            x: Math.random() * container.clientWidth,
-            y: Math.random() * container.clientHeight,
-            vx: (Math.random() - 0.5) * 1.0, // Increased initial velocity
-            vy: (Math.random() - 0.5) * 1.0,
-            size: Math.random() * 0.6 + 0.7, // Size variation for parallax (0.7 to 1.3)
-        }));
+        if (!containerRef.current || !canvasRef.current) return;
+
+        const handleResize = () => {
+            if (containerRef.current && canvasRef.current) {
+                const { clientWidth, clientHeight } = containerRef.current;
+                dimensions.current = { w: clientWidth, h: clientHeight };
+                
+                const dpr = window.devicePixelRatio || 1;
+                canvasRef.current.width = clientWidth * dpr;
+                canvasRef.current.height = clientHeight * dpr;
+                canvasRef.current.style.width = `${clientWidth}px`;
+                canvasRef.current.style.height = `${clientHeight}px`;
+                
+                const ctx = canvasRef.current.getContext('2d');
+                if (ctx) ctx.scale(dpr, dpr);
+
+                if (nodesRef.current.length === 0) {
+                    initNodes(clientWidth, clientHeight);
+                }
+            }
+        };
+
+        const initNodes = (w: number, h: number) => {
+            const activeSkills = skills.slice(0, MAX_NODES);
+            nodesRef.current = activeSkills.map((skill, i) => ({
+                id: i,
+                skill,
+                slug: getIconSlug(skill),
+                x: Math.random() * w,
+                y: Math.random() * h,
+                // Constant consistent motion
+                vx: (Math.random() - 0.5) * SPEED, 
+                vy: (Math.random() - 0.5) * SPEED,
+                phase: Math.random() * Math.PI * 2 // Random starting phase for pulsing
+            }));
+        };
+
+        handleResize();
+        const resizeObserver = new ResizeObserver(handleResize);
+        resizeObserver.observe(containerRef.current);
+
+        return () => resizeObserver.disconnect();
     }, [skills]);
 
+    // 2. Animation Loop
     useEffect(() => {
         let animationFrameId: number;
-        const container = containerRef.current;
+        let time = 0;
+        
+        const render = () => {
+            if (!canvasRef.current) return;
+            const ctx = canvasRef.current.getContext('2d');
+            if (!ctx) return;
 
-        const updateMousePos = (e: MouseEvent) => {
-            if (container) {
-                const rect = container.getBoundingClientRect();
-                mousePos.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            }
-        };
+            const { w, h } = dimensions.current;
+            const { x: mouseX, y: mouseY } = mousePos.current;
+            
+            time += 0.01; // Global time for pulsing
 
-        const animate = () => {
-            if (container) {
-                const { width, height } = container.getBoundingClientRect();
-                const { x: mouseX, y: mouseY } = mousePos.current;
+            ctx.clearRect(0, 0, w, h);
 
-                nodesRef.current = nodesRef.current.map(node => {
-                    let { x, y, vx, vy, size } = node;
+            nodesRef.current.forEach((node, i) => {
+                // --- 1. Constant Motion ---
+                node.x += node.vx;
+                node.y += node.vy;
 
-                    // Mouse repulsion force
-                    const dxMouse = x - mouseX;
-                    const dyMouse = y - mouseY;
-                    const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse) + 0.001; // Epsilon to prevent div by zero
+                // Soft Wall Bounce
+                if (node.x <= 0 || node.x >= w) node.vx *= -1;
+                if (node.y <= 0 || node.y >= h) node.vy *= -1;
+
+                // --- 2. Spotlight Logic ---
+                const dx = node.x - mouseX;
+                const dy = node.y - mouseY;
+                const distToMouse = Math.sqrt(dx * dx + dy * dy);
+                
+                // If in spotlight, full opacity. If far, dim.
+                const isHovered = distToMouse < SPOTLIGHT_RADIUS;
+                
+                // --- 3. DOM Updates ---
+                const domNode = nodeElementsRef.current[i];
+                const textNode = textElementsRef.current[i];
+                const imgNode = domNode?.querySelector('img');
+
+                if (domNode) {
+                    // Breathing effect: slight scale variation
+                    const breathe = Math.sin(time + node.phase) * 0.1; 
+                    const baseScale = isHovered ? 1.4 : 0.8; 
+                    const finalScale = baseScale + breathe;
+
+                    const opacity = isHovered ? 1 : 0.35; // Dimmer when idle
+                    const zIndex = isHovered ? 50 : 10;
+                    const grayscale = isHovered ? '0%' : '100%';
+
+                    domNode.style.transform = `translate3d(${node.x}px, ${node.y}px, 0) translate(-50%, -50%) scale(${finalScale})`;
+                    domNode.style.zIndex = `${zIndex}`;
+                    domNode.style.opacity = `${opacity}`;
                     
-                    if (distMouse < MOUSE_REPEL_RADIUS) {
-                        const force = (1 - distMouse / MOUSE_REPEL_RADIUS) * REPULSION_STRENGTH;
-                        // Larger nodes are "heavier" and less affected by force
-                        vx += (dxMouse / distMouse) * force / size;
-                        vy += (dyMouse / distMouse) * force / size;
+                    if (imgNode) imgNode.style.filter = `grayscale(${grayscale})`;
+
+                    // Text Label visibility
+                    if (isHovered && distToMouse < 100) {
+                        domNode.classList.add('active-node');
+                        if (textNode) {
+                            textNode.style.opacity = '1';
+                            textNode.style.transform = 'translateY(0)';
+                        }
+                    } else {
+                        domNode.classList.remove('active-node');
+                        if (textNode) {
+                            textNode.style.opacity = '0';
+                            textNode.style.transform = 'translateY(-8px)';
+                        }
                     }
+                }
 
-                    // Damping (friction)
-                    vx *= DAMPING_FACTOR;
-                    vy *= DAMPING_FACTOR;
+                // --- 4. Draw Lines ---
+                for (let j = i + 1; j < nodesRef.current.length; j++) {
+                    const node2 = nodesRef.current[j];
+                    const dx2 = node.x - node2.x;
+                    const dy2 = node.y - node2.y;
+                    const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
 
-                    // Update position
-                    x += vx; 
-                    y += vy;
+                    if (dist2 < CONNECTION_RADIUS) {
+                        // Calculate opacity
+                        // Base opacity is low (0.05). 
+                        // If EITHER node is hovered, boost line opacity (0.2).
+                        const dxM2 = node2.x - mouseX;
+                        const dyM2 = node2.y - mouseY;
+                        const distToMouse2 = Math.sqrt(dxM2 * dxM2 + dyM2 * dyM2);
+                        
+                        const isLineActive = isHovered || distToMouse2 < SPOTLIGHT_RADIUS;
+                        const maxOpacity = isLineActive ? 0.3 : 0.08;
+                        
+                        const opacity = (1 - dist2 / CONNECTION_RADIUS) * maxOpacity;
 
-                    // Wall collision with node radius
-                    const nodeRadius = (64 * size) / 2;
-                    if (x <= nodeRadius || x >= width - nodeRadius) {
-                        vx *= -1;
-                        x = Math.max(nodeRadius, Math.min(width - nodeRadius, x)); // Clamp position
+                        ctx.beginPath();
+                        ctx.moveTo(node.x, node.y);
+                        ctx.lineTo(node2.x, node2.y);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
                     }
-                    if (y <= nodeRadius || y >= height - nodeRadius) {
-                        vy *= -1;
-                        y = Math.max(nodeRadius, Math.min(height - nodeRadius, y)); // Clamp position
-                    }
+                }
+            });
 
-                    return { ...node, x, y, vx, vy };
-                });
-            }
-            setTick(t => t + 1);
-            animationFrameId = requestAnimationFrame(animate);
+            animationFrameId = requestAnimationFrame(render);
         };
 
-        window.addEventListener('mousemove', updateMousePos);
-        animationFrameId = requestAnimationFrame(animate);
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('mousemove', updateMousePos);
-        };
+        render();
+
+        return () => cancelAnimationFrame(animationFrameId);
     }, []);
 
-    const nodes = nodesRef.current;
+    // 3. Mouse Handlers
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        mousePos.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    };
+
+    const handleMouseLeave = () => {
+        mousePos.current = { x: -9999, y: -9999 };
+    };
 
     return (
-        <div ref={containerRef} className="relative w-full aspect-square max-w-3xl mx-auto border border-purple-500/10 bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                <defs>
-                    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="rgba(168, 85, 247, 0.3)" />
-                        <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
-                    </radialGradient>
-                </defs>
-                <circle cx={mousePos.current.x} cy={mousePos.current.y} r={MOUSE_REPEL_RADIUS} fill="url(#glow)" />
-                {nodes.map((node1, i) =>
-                    nodes.slice(i + 1).map(node2 => {
-                        const dx = node1.x - node2.x;
-                        const dy = node1.y - node2.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
+        <div 
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className="relative w-full h-[600px] bg-black/40 rounded-3xl border border-white/5 overflow-hidden backdrop-blur-sm group"
+        >
+            {/* Ambient Background Grid */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-                        return distance < NODE_CONNECTION_RADIUS ? (
-                            <line
-                                key={`line-${node1.id}-${node2.id}`}
-                                x1={node1.x} y1={node1.y}
-                                x2={node2.x} y2={node2.y}
-                                stroke={`rgba(168, 85, 247, ${0.4 * (1 - distance / NODE_CONNECTION_RADIUS)})`}
-                                strokeWidth="1"
-                            />
-                        ) : null;
-                    })
-                )}
-            </svg>
-            {nodes.map(node => {
-                const dx = node.x - mousePos.current.x; const dy = node.y - mousePos.current.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+            <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-10" />
+
+            {/* DOM Nodes */}
+            {skills.slice(0, MAX_NODES).map((skill, i) => {
+                const glowColor = getSkillColor(skill);
+                const slug = getIconSlug(skill); 
+                
                 return (
-                    <SkillNode key={node.id} skill={node.skill} x={node.x} y={node.y} size={node.size} isNearby={distance < MOUSE_REPEL_RADIUS} />
+                    <div
+                        key={i}
+                        ref={(el) => { nodeElementsRef.current[i] = el; }}
+                        className="absolute will-change-transform flex items-center justify-center transition-opacity duration-300"
+                        style={{ width: '40px', height: '40px', transform: 'translate3d(-100px, -100px, 0)' }}
+                    >
+                        {/* Glow (Visible on Hover) */}
+                        <div className={`
+                            absolute inset-0 rounded-full blur-md opacity-0 transition-opacity duration-300
+                            group-[.active-node]:opacity-100 ${glowColor}
+                        `} />
+                        
+                        {/* Logo Container */}
+                        <div className="relative z-10 w-full h-full p-1.5 bg-black/50 rounded-full border border-white/10 backdrop-blur-sm">
+                            <img 
+                                src={`https://cdn.simpleicons.org/${slug}/white`} 
+                                alt={skill}
+                                className="w-full h-full object-contain transition-all duration-300"
+                                style={{ filter: 'grayscale(100%)' }} 
+                                onError={(e) => {
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                        e.currentTarget.style.display = 'none';
+                                        parent.innerText = skill.charAt(0);
+                                        parent.classList.add("flex", "items-center", "justify-center", "font-bold", "text-white/50");
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        {/* Tooltip Label */}
+                        <div 
+                            ref={(el) => { textElementsRef.current[i] = el; }}
+                            className="absolute top-full mt-3 px-2 py-1 bg-black/90 border border-white/10 rounded text-[10px] font-mono uppercase text-white pointer-events-none opacity-0 transition-all duration-300 whitespace-nowrap z-50 shadow-xl"
+                        >
+                            {skill}
+                        </div>
+                    </div>
                 );
             })}
         </div>
     );
 };
-
-
-// --- Main Skills Section Component ---
-
-interface SkillsProps {
-    portfolioData: PortfolioData;
-}
-
-export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
-    const allSkills = Object.values(portfolioData.skills).flat();
-    
-    return (
-        <section id="skills" className="container mx-auto px-6 max-w-7xl py-24 lg:py-36">
-            <SectionHeader subtitle="Expertise" title="Technical" highlight="Arsenal" />
-            <AnimatedSection className="mb-24">
-                <SkillConstellation skills={allSkills.slice(0, 16)} />
-            </AnimatedSection>
-            <div className="space-y-16">
-                {Object.entries(portfolioData.skills).map(([category, skills], i) => (
-                    <AnimatedSection key={category} delay={i * 200}>
-                        <div className="text-center mb-12">
-                            <h3 className="text-3xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text inline-block relative">
-                                {category}
-                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50"></div>
-                            </h3>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-3">
-                            {skills.map((skill) => (
-                                <div
-                                    key={skill}
-                                    className="px-6 py-3 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-xl rounded-full border border-blue-200/30 dark:border-blue-700/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 cursor-default group"
-                                >
-                                    <span className="text-blue-700 dark:text-purple-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text font-semibold transition-all duration-300">
-                                        {skill}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </AnimatedSection>
-                ))}
-            </div>
-        </section>
-    );
-};
-
