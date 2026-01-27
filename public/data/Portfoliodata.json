@@ -14,8 +14,10 @@
     "Backend": ["NodeJS", "PHP", "Kafka", "NestJS", "Python", "Kotlin", "Java", "Springboot"],
     "Cloud & DevOps": ["AWS", "GCP", "Docker", "Linux"],
     "Databases": ["PostgreSQL", "MongoDB"],
-    "Blockchain": ["Solidity"],
-    "Core Languages": ["C", "C++"]
+    "Machine Learning": ["pandas", "scikit-learn", "DSCNN", "TensorFlow", "Pytorch"],
+    "Deep Learning": ["NLP", "Computer Vision", "Transformers"],
+    "Blockchain": ["Solidity","Hardhat","zkSync","EVM","IPFS","VIEM","Alchemy","PINATA"],
+    "Core Languages": ["C", "C++", "JavaScript"]
   },
   "experience": [
     {

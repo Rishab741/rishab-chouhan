@@ -1,20 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, User, Terminal, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Send, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// --- Helper to generate unique IDs (Replaces crypto.randomUUID) ---
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
-};
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  thinking?: string; // We still receive it, just won't show it
-  context?: string;
   timestamp: Date;
 }
 
@@ -24,100 +17,223 @@ export default function AdvancedChatbot() {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messageQueueRef = useRef<string[]>([]);
+  const isClosingRef = useRef(false); // Track intentional closures
 
-  // 1. FIX: Helper function to generate truly unique IDs
-  // Prevents the "Encountered two children with the same key" error
-  const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  // Generate unique IDs
+  const generateId = useCallback(() => 
+    `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 
+  []);
 
-  // 1. WebSocket Connection Logic
+  // Add message helper
+  const addMessage = useCallback((message: Omit<Message, 'id'>) => {
+    setMessages(prev => [...prev, { ...message, id: generateId() }]);
+  }, [generateId]);
+
+  // Connect to WebSocket
+  const connectWebSocket = useCallback(() => {
+    // Close existing connection
+    if (socketRef.current) {
+      isClosingRef.current = true; // Mark as intentional closure
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    // Clear any pending reconnect
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    setConnectionStatus('connecting');
+    console.log('🔄 Attempting WebSocket connection...');
+
+    try {
+      isClosingRef.current = false; // Reset closure flag
+      const wsUrl = 'wss://rishab-chouhan.onrender.com/ws/chat';
+      const socket = new WebSocket(wsUrl);
+      
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (socket.readyState !== WebSocket.OPEN) {
+          console.error('⏱️ Connection timeout');
+          socket.close();
+          setConnectionStatus('disconnected');
+          addMessage({
+            role: 'assistant',
+            content: "Connection timeout. The server might be sleeping (Render free tier). Please wait 30 seconds and try again.",
+            timestamp: new Date()
+          });
+        }
+      }, 15000); // 15 second timeout
+
+      socket.onopen = () => {
+        clearTimeout(connectionTimeout);
+        console.log('✅ WebSocket connected');
+        setConnectionStatus('connected');
+        setReconnectAttempts(0);
+        
+        // Send any queued messages
+        while (messageQueueRef.current.length > 0) {
+          const queuedMsg = messageQueueRef.current.shift();
+          if (queuedMsg && socket.readyState === WebSocket.OPEN) {
+            socket.send(queuedMsg);
+          }
+        }
+      };
+
+      socket.onmessage = (event) => {
+        console.log('📨 Received:', event.data);
+        try {
+          const data = JSON.parse(event.data);
+          addMessage({
+            role: 'assistant',
+            content: data.response || data.message || 'Received empty response',
+            timestamp: new Date()
+          });
+        } catch (e) {
+          console.error('Failed to parse message:', e);
+          addMessage({
+            role: 'assistant',
+            content: event.data,
+            timestamp: new Date()
+          });
+        }
+        setLoading(false);
+      };
+
+      socket.onerror = (error) => {
+        clearTimeout(connectionTimeout);
+        // Only log error if it wasn't an intentional closure
+        if (!isClosingRef.current) {
+          console.error('❌ WebSocket error:', error);
+          setConnectionStatus('disconnected');
+        }
+      };
+
+      socket.onclose = (event) => {
+        clearTimeout(connectionTimeout);
+        
+        // Only log and handle if it wasn't an intentional closure
+        if (!isClosingRef.current) {
+          console.log('🔌 WebSocket closed:', event.code, event.reason);
+          setConnectionStatus('disconnected');
+          socketRef.current = null;
+
+          // Attempt to reconnect if chat is still open
+          if (isOpen && reconnectAttempts < 3) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+            console.log(`🔄 Reconnecting in ${delay}ms...`);
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setReconnectAttempts(prev => prev + 1);
+              connectWebSocket();
+            }, delay);
+          }
+        } else {
+          console.log('✅ WebSocket closed intentionally');
+          socketRef.current = null;
+        }
+      };
+
+      socketRef.current = socket;
+    } catch (error) {
+      console.error('Failed to create WebSocket:', error);
+      setConnectionStatus('disconnected');
+      addMessage({
+        role: 'assistant',
+        content: "Failed to connect. Please check the server URL and try again.",
+        timestamp: new Date()
+      });
+    }
+  }, [isOpen, reconnectAttempts, addMessage]);
+
+  // Connect when chat opens
   useEffect(() => {
     if (isOpen) {
-      // Use the production WebSocket URL when deployed
-      const wsUrl = process.env.NODE_ENV === 'production'
-        ? 'wss://your-production-backend.onrender.com/ws/chat' // Replace with your deployed backend URL
-        : 'ws://localhost:8000/ws/chat';
-      
-      socketRef.current = new WebSocket(wsUrl);
-      
-      socketRef.current.onopen = () => {
-        console.log("WebSocket connection established.");
-      };
-
-      socketRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        addMessage({
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: data.response,
-          thinking: data.thinking, // Still storing it, just not displaying
-          timestamp: new Date()
-        });
-        setLoading(false);
-      };
-
-      socketRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        addMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
-            timestamp: new Date()
-        });
-        setLoading(false);
-      };
+      connectWebSocket();
+    } else {
+      // Clean up when closing - mark as intentional
+      isClosingRef.current = true;
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setReconnectAttempts(0);
+      setConnectionStatus('disconnected');
     }
 
     return () => {
+      isClosingRef.current = true;
       if (socketRef.current) {
         socketRef.current.close();
+        socketRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, connectWebSocket]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const addMessage = (message: Message) => {
-    setMessages(prev => [...prev, message]);
-  };
-
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!input.trim()) return;
+
+    const userMessage = input;
+    setInput('');
 
     // Add user message
     addMessage({
-      id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: userMessage,
       timestamp: new Date()
-    };
+    });
 
-    addMessage(userMsg);
-    setInput('');
     setLoading(true);
 
-    // Send via WebSocket
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({
-        text: input,
-        conversation_id: 'default'
-      }));
-    } else {
-        addMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: "I'm not connected right now. Please try opening the chat again.",
-            timestamp: new Date()
-        });
-        setLoading(false);
-    }
+    const payload = JSON.stringify({
+      text: userMessage,
+      conversation_id: 'default'
+    });
 
-    setInput('');
+    // Send via WebSocket or queue
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      console.log('📤 Sending:', payload);
+      socketRef.current.send(payload);
+    } else {
+      console.log('⏳ Queueing message, connection not ready');
+      messageQueueRef.current.push(payload);
+      
+      addMessage({
+        role: 'assistant',
+        content: "Connecting to server... Your message will be sent once connected. (Render free tier servers may take 30-60s to wake up)",
+        timestamp: new Date()
+      });
+
+      // Try to reconnect
+      if (connectionStatus === 'disconnected') {
+        connectWebSocket();
+      }
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
@@ -147,6 +263,7 @@ export default function AdvancedChatbot() {
                     }`} />
                     <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
                         {connectionStatus}
+                        {reconnectAttempts > 0 && ` (${reconnectAttempts}/3)`}
                     </span>
                   </div>
                 </div>
@@ -159,56 +276,69 @@ export default function AdvancedChatbot() {
               </button>
             </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-xs px-4 py-3 rounded-2xl ${
-                msg.role === 'user'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
-              }`}>
-                <p className="text-sm">{msg.content}</p>
-                
-                {/* THIS BLOCK IS NOW REMOVED:
-                
-                  {msg.thinking && (
-                    <p className="text-xs opacity-60 mt-2 italic">{msg.thinking}</p>
-                  )}
-                
-                */}
-
-              </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Sparkles className="w-12 h-12 text-indigo-500 mb-3" />
+                  <p className="text-zinc-400 text-sm">Start a conversation</p>
+                  <p className="text-zinc-600 text-xs mt-1">Note: Server may take 30-60s to wake up</p>
+                </div>
+              )}
+              
+              {messages.map(msg => (
+                <div
+                  key={msg.id}
+                  className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[85%] px-4 py-3 rounded-2xl ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                      : 'bg-zinc-800/50 text-zinc-100 border border-zinc-700/50'
+                  }`}>
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {loading && (
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Thinking...</span>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
             </div>
-          ))}
-          {loading && <div className="text-center text-sm text-gray-500">Thinking...</div>}
-          <div ref={messagesEndRef} />
-        </div>
 
             {/* Input Area */}
             <div className="p-4 bg-[#0a0a0a] border-t border-white/5">
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="relative flex items-center gap-2"
-              >
+              <div className="relative flex items-center gap-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type a message..."
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-900/50 transition-all"
+                  onKeyPress={handleKeyPress}
+                  placeholder={connectionStatus === 'connected' ? "Type a message..." : "Waiting for connection..."}
+                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
                 />
                 <button
-                  type="submit"
-                  disabled={!input.trim() || loading || connectionStatus !== 'connected'}
+                  onClick={handleSend}
+                  disabled={!input.trim() || loading}
                   className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
                 >
-                  <Send className="w-4 h-4" />
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
-              </form>
+              </div>
+              
+              {connectionStatus === 'disconnected' && messages.length === 0 && (
+                <button
+                  onClick={connectWebSocket}
+                  className="w-full mt-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  Retry Connection
+                </button>
+              )}
             </div>
           </motion.div>
         )}
