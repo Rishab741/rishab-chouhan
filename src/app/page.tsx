@@ -19,9 +19,11 @@ export default async function Page() {
 
     const portfolioData: PortfolioData = JSON.parse(jsonData);
 
+    const ClientLayout: any = PortfolioClientLayout;
+
     return (
       <>
-        <PortfolioClientLayout portfolioData={portfolioData} />
+        <ClientLayout portfolioData={portfolioData} />
         <AdvancedChatbot />
       </>
     );

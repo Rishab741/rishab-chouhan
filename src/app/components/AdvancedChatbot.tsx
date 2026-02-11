@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, Sparkles, Loader2 } from 'lucide-react';
+import { X, Send, Sparkles, Loader2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
@@ -9,6 +9,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  action?: string;
 }
 
 export default function AdvancedChatbot() {
@@ -23,28 +24,23 @@ export default function AdvancedChatbot() {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messageQueueRef = useRef<string[]>([]);
-  const isClosingRef = useRef(false); // Track intentional closures
+  const isClosingRef = useRef(false);
 
-  // Generate unique IDs
   const generateId = useCallback(() => 
     `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 
   []);
 
-  // Add message helper
   const addMessage = useCallback((message: Omit<Message, 'id'>) => {
     setMessages(prev => [...prev, { ...message, id: generateId() }]);
   }, [generateId]);
 
-  // Connect to WebSocket
   const connectWebSocket = useCallback(() => {
-    // Close existing connection
     if (socketRef.current) {
-      isClosingRef.current = true; // Mark as intentional closure
+      isClosingRef.current = true;
       socketRef.current.close();
       socketRef.current = null;
     }
 
-    // Clear any pending reconnect
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -54,11 +50,10 @@ export default function AdvancedChatbot() {
     console.log('🔄 Attempting WebSocket connection...');
 
     try {
-      isClosingRef.current = false; // Reset closure flag
-      const wsUrl = 'wss://rishab-chouhan.onrender.com/ws/chat';
+      isClosingRef.current = false;
+      const wsUrl = 'ws://localhost:8000/ws/chat'; 
       const socket = new WebSocket(wsUrl);
       
-      // Set a connection timeout
       const connectionTimeout = setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {
           console.error('⏱️ Connection timeout');
@@ -66,11 +61,11 @@ export default function AdvancedChatbot() {
           setConnectionStatus('disconnected');
           addMessage({
             role: 'assistant',
-            content: "Connection timeout. The server might be sleeping (Render free tier). Please wait 30 seconds and try again.",
+            content: "Connection timeout. Please make sure the server is running.",
             timestamp: new Date()
           });
         }
-      }, 15000); // 15 second timeout
+      }, 10000);
 
       socket.onopen = () => {
         clearTimeout(connectionTimeout);
@@ -78,7 +73,7 @@ export default function AdvancedChatbot() {
         setConnectionStatus('connected');
         setReconnectAttempts(0);
         
-        // Send any queued messages
+        // Send queued messages
         while (messageQueueRef.current.length > 0) {
           const queuedMsg = messageQueueRef.current.shift();
           if (queuedMsg && socket.readyState === WebSocket.OPEN) {
@@ -91,17 +86,31 @@ export default function AdvancedChatbot() {
         console.log('📨 Received:', event.data);
         try {
           const data = JSON.parse(event.data);
-          addMessage({
-            role: 'assistant',
-            content: data.response || data.message || 'Received empty response',
-            timestamp: new Date()
-          });
+          
+          if (data.type === 'error') {
+            console.error('Server error:', data.error);
+            addMessage({
+              role: 'assistant',
+              content: data.response || "I encountered an error. Please try again.",
+              timestamp: new Date()
+            });
+          } else {
+            // Check for meeting flow trigger
+            const hasAction = data.action === 'suggest_meeting';
+            
+            addMessage({
+              role: 'assistant',
+              content: data.response || 'I apologize, but I did not receive a proper response.',
+              timestamp: new Date(),
+              action: hasAction ? 'suggest_meeting' : undefined
+            });
+          }
         } catch (e) {
           console.error('Failed to parse message:', e);
-          addMessage({
-            role: 'assistant',
-            content: event.data,
-            timestamp: new Date()
+          addMessage({ 
+            role: 'assistant', 
+            content: event.data, 
+            timestamp: new Date() 
           });
         }
         setLoading(false);
@@ -109,7 +118,6 @@ export default function AdvancedChatbot() {
 
       socket.onerror = (error) => {
         clearTimeout(connectionTimeout);
-        // Only log error if it wasn't an intentional closure
         if (!isClosingRef.current) {
           console.error('❌ WebSocket error:', error);
           setConnectionStatus('disconnected');
@@ -118,25 +126,18 @@ export default function AdvancedChatbot() {
 
       socket.onclose = (event) => {
         clearTimeout(connectionTimeout);
-        
-        // Only log and handle if it wasn't an intentional closure
         if (!isClosingRef.current) {
-          console.log('🔌 WebSocket closed:', event.code, event.reason);
+          console.log('🔌 WebSocket closed:', event.code);
           setConnectionStatus('disconnected');
-          socketRef.current = null;
-
-          // Attempt to reconnect if chat is still open
+          
           if (isOpen && reconnectAttempts < 3) {
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+            const delay = 3000;
             console.log(`🔄 Reconnecting in ${delay}ms...`);
             reconnectTimeoutRef.current = setTimeout(() => {
               setReconnectAttempts(prev => prev + 1);
               connectWebSocket();
             }, delay);
           }
-        } else {
-          console.log('✅ WebSocket closed intentionally');
-          socketRef.current = null;
         }
       };
 
@@ -144,20 +145,13 @@ export default function AdvancedChatbot() {
     } catch (error) {
       console.error('Failed to create WebSocket:', error);
       setConnectionStatus('disconnected');
-      addMessage({
-        role: 'assistant',
-        content: "Failed to connect. Please check the server URL and try again.",
-        timestamp: new Date()
-      });
     }
   }, [isOpen, reconnectAttempts, addMessage]);
 
-  // Connect when chat opens
   useEffect(() => {
     if (isOpen) {
       connectWebSocket();
     } else {
-      // Clean up when closing - mark as intentional
       isClosingRef.current = true;
       if (socketRef.current) {
         socketRef.current.close();
@@ -170,7 +164,7 @@ export default function AdvancedChatbot() {
       setReconnectAttempts(0);
       setConnectionStatus('disconnected');
     }
-
+    
     return () => {
       isClosingRef.current = true;
       if (socketRef.current) {
@@ -186,59 +180,45 @@ export default function AdvancedChatbot() {
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages]);
 
   const handleSend = () => {
     if (!input.trim()) return;
-
+    
     const userMessage = input;
     setInput('');
-
-    // Add user message
-    addMessage({
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date()
+    
+    addMessage({ 
+      role: 'user', 
+      content: userMessage, 
+      timestamp: new Date() 
     });
-
+    
     setLoading(true);
 
-    const payload = JSON.stringify({
-      text: userMessage,
-      conversation_id: 'default'
-    });
+    const payload = JSON.stringify({ text: userMessage });
 
-    // Send via WebSocket or queue
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      console.log('📤 Sending:', payload);
+      console.log('📤 Sending:', userMessage);
       socketRef.current.send(payload);
     } else {
-      console.log('⏳ Queueing message, connection not ready');
+      console.log('⏳ Queueing message');
       messageQueueRef.current.push(payload);
       
       addMessage({
         role: 'assistant',
-        content: "Connecting to server... Your message will be sent once connected. (Render free tier servers may take 30-60s to wake up)",
+        content: "Connecting to server... Please wait.",
         timestamp: new Date()
       });
-
-      // Try to reconnect
+      
       if (connectionStatus === 'disconnected') {
         connectWebSocket();
       }
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
-    <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end pointer-events-none font-sans">
-      
+    <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end pointer-events-none">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -246,57 +226,73 @@ export default function AdvancedChatbot() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="pointer-events-auto mb-4 w-[90vw] sm:w-[380px] h-[600px] max-h-[80vh] flex flex-col bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+            className="pointer-events-auto mb-4 w-[90vw] sm:w-[400px] h-[600px] flex flex-col bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg">
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white text-sm tracking-wide">AI Assistant</h3>
+                  <h3 className="text-white text-sm font-semibold">Rishab AI</h3>
                   <div className="flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                        connectionStatus === 'connected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
-                        connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      connectionStatus === 'connected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                      connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' : 
+                      'bg-red-500'
                     }`} />
-                    <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
-                        {connectionStatus}
-                        {reconnectAttempts > 0 && ` (${reconnectAttempts}/3)`}
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
+                      {connectionStatus}
+                      {reconnectAttempts > 0 && ` (${reconnectAttempts}/3)`}
                     </span>
                   </div>
                 </div>
               </div>
               <button 
-                onClick={() => setIsOpen(false)}
+                onClick={() => setIsOpen(false)} 
                 className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Messages */}
+            {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <Sparkles className="w-12 h-12 text-indigo-500 mb-3" />
-                  <p className="text-zinc-400 text-sm">Start a conversation</p>
-                  <p className="text-zinc-600 text-xs mt-1">Note: Server may take 30-60s to wake up</p>
+                  <p className="text-zinc-400 text-sm">Ask me about Rishab's experience</p>
+                  <p className="text-zinc-600 text-xs mt-1">or schedule a meeting!</p>
                 </div>
               )}
               
               {messages.map(msg => (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                <div 
+                  key={msg.id} 
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] px-4 py-3 rounded-2xl ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                  <div className={`max-w-[85%] p-4 rounded-2xl text-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
                       : 'bg-zinc-800/50 text-zinc-100 border border-zinc-700/50'
                   }`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    
+                    {/* Meeting button if action is present */}
+                    {msg.action === 'suggest_meeting' && (
+                      <button
+                        onClick={() => {
+                          // Here you would trigger your meeting booking flow
+                          // For now, just show an alert
+                          alert('Meeting booking feature coming soon!\n\nFor now, please email: crishab07@gmail.com');
+                        }}
+                        className="mt-3 w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Calendar className="w-4 h-4" />
+                        Schedule Meeting
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -304,7 +300,7 @@ export default function AdvancedChatbot() {
               {loading && (
                 <div className="flex items-center gap-2 text-zinc-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Thinking...</span>
+                  <span className="text-sm">Assistant is thinking...</span>
                 </div>
               )}
               
@@ -312,26 +308,31 @@ export default function AdvancedChatbot() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-[#0a0a0a] border-t border-white/5">
+            <div className="p-4 border-t border-white/5 bg-[#0a0a0a]">
               <div className="relative flex items-center gap-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={connectionStatus === 'connected' ? "Type a message..." : "Waiting for connection..."}
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                  placeholder={connectionStatus === 'connected' ? "Ask me anything..." : "Connecting..."}
+                  disabled={connectionStatus !== 'connected'}
+                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim() || loading}
+                  disabled={!input.trim() || loading || connectionStatus !== 'connected'}
                   className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               
-              {connectionStatus === 'disconnected' && messages.length === 0 && (
+              {connectionStatus === 'disconnected' && (
                 <button
                   onClick={connectWebSocket}
                   className="w-full mt-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
@@ -356,17 +357,28 @@ export default function AdvancedChatbot() {
         
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} className="relative z-10">
+            <motion.div 
+              key="close" 
+              initial={{ rotate: -90, opacity: 0 }} 
+              animate={{ rotate: 0, opacity: 1 }} 
+              exit={{ rotate: 90, opacity: 0 }} 
+              className="relative z-10"
+            >
               <X className="w-6 h-6" />
             </motion.div>
           ) : (
-            <motion.div key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} className="relative z-10">
+            <motion.div 
+              key="open" 
+              initial={{ rotate: 90, opacity: 0 }} 
+              animate={{ rotate: 0, opacity: 1 }} 
+              exit={{ rotate: -90, opacity: 0 }} 
+              className="relative z-10"
+            >
               <Sparkles className="w-6 h-6" />
             </motion.div>
           )}
         </AnimatePresence>
       </motion.button>
-
     </div>
   );
 }
