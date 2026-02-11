@@ -51,7 +51,8 @@ export default function AdvancedChatbot() {
 
     try {
       isClosingRef.current = false;
-      const wsUrl = 'ws://localhost:8000/ws/chat'; 
+      // const wsUrl = 'ws://localhost:8000/ws/chat'; 
+      const wsUrl = 'wss://rishab-chouhan.onrender.com/ws/chat';
       const socket = new WebSocket(wsUrl);
       
       const connectionTimeout = setTimeout(() => {
