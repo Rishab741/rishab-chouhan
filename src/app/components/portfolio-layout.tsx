@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { useDarkMode } from './hooks';
+import { PortfolioData } from './types';
 import { Navbar } from './sections/navbar';
 import { Header } from './sections/header';
 import { Skills } from './sections/skills';
@@ -29,7 +30,7 @@ const GlobalAmbientGlow = () => (
 );
 
 // --- 2. Main Refactored Component ---
-export default function PortfolioClientLayout({ portfolioData }: { portfolioData: any }) {
+export default function PortfolioClientLayout({ portfolioData }: { portfolioData: PortfolioData }) {
   const [theme, toggleTheme] = useDarkMode();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });

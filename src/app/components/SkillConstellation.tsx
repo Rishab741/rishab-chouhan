@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 // --- Improved Slug Mapping for Simple Icons ---
@@ -158,10 +159,13 @@ export const SkillConstellation: React.FC<SkillConstellationProps> = ({ skillsDa
                       key={skill}
                       className="flex items-center gap-2.5 px-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/[0.08] hover:scale-105 transition-all duration-300 cursor-default group/skill"
                     >
-                      <img
+                      <Image
                         src={`https://cdn.simpleicons.org/${getIconSlug(skill)}/white`}
                         className="w-4 h-4 opacity-50 group-hover/skill:opacity-100 transition-opacity"
                         alt={skill}
+                        width={16}
+                        height={16}
+                        unoptimized
                         onError={(e) => (e.currentTarget.style.display = 'none')}
                       />
                       <span className="text-sm font-medium text-zinc-500 group-hover/skill:text-white transition-colors">

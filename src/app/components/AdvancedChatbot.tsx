@@ -128,7 +128,7 @@ export default function AdvancedChatbot() {
               action: hasAction ? 'suggest_meeting' : undefined
             });
           }
-        } catch (e) {
+        } catch {
           addMessage({ role: 'assistant', content: event.data, timestamp: new Date() });
         }
         setLoading(false);
@@ -289,7 +289,7 @@ export default function AdvancedChatbot() {
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <Sparkles className="w-12 h-12 text-indigo-500 mb-3" />
-                  <p className="text-zinc-400 text-sm">Ask me about Rishab's experience</p>
+                  <p className="text-zinc-400 text-sm">Ask me about Rishab&apos;s experience</p>
                   <p className="text-zinc-600 text-xs mt-1">or schedule a meeting!</p>
                 </div>
               )}
