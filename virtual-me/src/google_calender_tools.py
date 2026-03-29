@@ -10,11 +10,11 @@ PERSONAL_CALENDAR_ID = "crishab07@gmail.com"
 
 def get_calendar_service():
     """Loads credentials from environment variable and returns a service object."""
-    creds_json = os.environ.get("GCP_SERVICE_ACCOUNT_JSON")
-    
+    creds_json = os.environ.get("GCP_SERVICE_ACCOUNT_JSON", "").strip().strip("'").strip('"')
+
     if not creds_json:
         raise EnvironmentError("Missing GCP_SERVICE_ACCOUNT_JSON environment variable.")
-        
+
     info = json.loads(creds_json)
     if "private_key" in info:
         info["private_key"] = info["private_key"].replace("\\n", "\n")
