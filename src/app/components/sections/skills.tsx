@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform, useSpring, useMotionValue, MotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, MotionValue } from 'framer-motion';
 
 // FIX: Correct Relative Imports based on your provided paths
 import { PortfolioData } from '../types'; 
-import { SectionTitle } from '../ui/DesignSystem';
 import { SkillConstellation } from '../SkillConstellation';
 
 // Improved icon slug mapping
@@ -60,7 +59,7 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
 
     // Transform categories into an array for easier mapping
     const categories = Object.entries(portfolioData.skills);
-    const totalSkills = categories.reduce((acc, [_, skills]) => acc + skills.length, 0);
+    const totalSkills = categories.reduce((acc, [, skills]) => acc + skills.length, 0);
 
     return (
         <section id="skills" ref={containerRef} className="relative py-48 bg-black overflow-hidden">

@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Github, Linkedin, Mail, Sparkles, Download, Play } from 'lucide-react';
+import { ArrowRight, Github, Linkedin, Mail, Sparkles, Play } from 'lucide-react';
 import { PortfolioData } from '../types';
 
 export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioData }) => {

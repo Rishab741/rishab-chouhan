@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Calendar, Building2, TrendingUp, Sparkles } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { PortfolioData } from '../types';
 
 export const Experience: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioData }) => {
@@ -70,7 +70,7 @@ export const Experience: React.FC<{ portfolioData: PortfolioData }> = ({ portfol
 };
 
 interface ExperienceCardProps {
-    job: any;
+    job: { role: string; company: string; duration: string; description: string };
     index: number;
     isEven: boolean;
 }
@@ -91,6 +91,9 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
     const opacity = useTransform(smoothProgress, [0, 0.3], [0, 1]);
     const scale = useTransform(smoothProgress, [0, 0.3], [0.9, 1]);
     const x = useTransform(smoothProgress, [0, 0.3], [isEven ? -50 : 50, 0]);
+    const xReversed = useTransform(x, (val: number) => -val);
+    const dotScale = useTransform(smoothProgress, [0.2, 0.4], [0, 1]);
+    const numOpacity = useTransform(smoothProgress, [0.2, 0.4], [0, 0.05]);
 
     return (
         <motion.div
@@ -102,9 +105,9 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
         >
             {/* Timeline Dot */}
             <div className="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                <motion.div 
+                <motion.div
                     className="relative"
-                    style={{ scale: useTransform(smoothProgress, [0.2, 0.4], [0, 1]) }}
+                    style={{ scale: dotScale }}
                 >
                     <div className="w-4 h-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)]" />
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full animate-ping opacity-75" />
@@ -113,7 +116,7 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
 
             {/* Content Card */}
             <motion.div
-                style={{ x: isEven ? x : useTransform(x, (val) => -val) }}
+                style={{ x: isEven ? x : xReversed }}
                 className={`${isEven ? 'md:text-right' : 'md:text-left md:[direction:ltr]'} ${
                     isEven ? '' : 'md:col-start-2'
                 }`}
@@ -159,9 +162,7 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
             {/* Visual Timeline Number */}
             <div className={`hidden md:block ${isEven ? 'md:col-start-2' : 'md:col-start-1'} ${isEven ? 'md:text-left' : 'md:text-right'}`}>
                 <motion.div
-                    style={{ 
-                        opacity: useTransform(smoothProgress, [0.2, 0.4], [0, 0.05]),
-                    }}
+                    style={{ opacity: numOpacity }}
                     className="text-[120px] font-black leading-none select-none"
                 >
                     <span className="bg-clip-text text-transparent bg-gradient-to-br from-white/5 to-transparent">
