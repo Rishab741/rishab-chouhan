@@ -29,7 +29,7 @@ def setup_vector_store():
     # 2. Initialize Google Gemini Embeddings
     # This will automatically use the GOOGLE_API_KEY from your .env file
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     except Exception as e:
         print(f"Error initializing Gemini Embeddings: {e}")
         print("Please ensure your GOOGLE_API_KEY is set correctly in the .env file.")
@@ -44,10 +44,16 @@ def setup_vector_store():
         return None
 
     pc = PineconeClient(api_key=pinecone_api_key)
-    
-    # 4. Create or connect to the Pinecone index
-    # The dimension for Google's text-embedding-004 is 768
-    embedding_dimension = 768 
+
+    # 4. Delete existing index if present (dimension may have changed)
+    existing_indexes = pc.list_indexes().names()
+    if pinecone_index_name in existing_indexes:
+        print(f"Deleting existing index '{pinecone_index_name}' to ensure clean rebuild...")
+        pc.delete_index(pinecone_index_name)
+        print("Deleted.")
+
+    # gemini-embedding-001 outputs 3072 dimensions by default
+    embedding_dimension = 3072 
     if pinecone_index_name not in pc.list_indexes().names():
         print(f"Creating new Pinecone index: '{pinecone_index_name}' with dimension {embedding_dimension}...")
         pc.create_index(
