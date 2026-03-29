@@ -51,10 +51,12 @@ def retrieve_context(query: str) -> str:
     """
     initialize_components()
     try:
+        print(f"DEBUG: Searching Pinecone for: {query}")
         results = vector_store.similarity_search(query, k=5)
         context = "\n\n".join([doc.page_content for doc in results])
         return f"RETRIEVED CONTEXT:\n{context}"
     except Exception as e:
+        print(f"DEBUG ERROR: {str(e)}")
         return f"Error retrieving context: {str(e)}"
 
 class AgentState(TypedDict):
