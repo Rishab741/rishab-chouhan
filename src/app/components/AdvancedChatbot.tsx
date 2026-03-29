@@ -19,62 +19,89 @@ export default function AdvancedChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const wakeUpNoticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messageQueueRef = useRef<string[]>([]);
   const isClosingRef = useRef(false);
+  // Refs to avoid stale closures inside WebSocket callbacks
+  const isOpenRef = useRef(isOpen);
+  const reconnectAttemptsRef = useRef(0);
+  const connectWebSocketRef = useRef<() => void>(() => {});
 
-  const generateId = useCallback(() => 
-    `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+
+  const generateId = useCallback(() =>
+    `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
   []);
 
   const addMessage = useCallback((message: Omit<Message, 'id'>) => {
     setMessages(prev => [...prev, { ...message, id: generateId() }]);
   }, [generateId]);
 
+  const clearConnectionTimers = useCallback(() => {
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    if (wakeUpNoticeTimeoutRef.current) {
+      clearTimeout(wakeUpNoticeTimeoutRef.current);
+      wakeUpNoticeTimeoutRef.current = null;
+    }
+  }, []);
+
+  // connectWebSocket has no deps that change — all mutable state accessed via refs
   const connectWebSocket = useCallback(() => {
     if (socketRef.current) {
       isClosingRef.current = true;
       socketRef.current.close();
       socketRef.current = null;
     }
-
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    clearConnectionTimers();
 
     setConnectionStatus('connecting');
-    console.log('🔄 Attempting WebSocket connection...');
 
     try {
       isClosingRef.current = false;
-      // const wsUrl = 'ws://localhost:8000/ws/chat'; 
       const wsUrl = 'wss://rishab-chouhan.onrender.com/ws/chat';
       const socket = new WebSocket(wsUrl);
-      
-      const connectionTimeout = setTimeout(() => {
+
+      // Only show the wake-up notice once per open session
+      wakeUpNoticeTimeoutRef.current = setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {
-          console.error('⏱️ Connection timeout');
+          addMessage({
+            role: 'assistant',
+            content: "The server is waking up from sleep (Render free tier). This can take up to 60 seconds — please hang tight!",
+            timestamp: new Date()
+          });
+        }
+      }, 5000);
+
+      connectionTimeoutRef.current = setTimeout(() => {
+        clearConnectionTimers();
+        if (socket.readyState !== WebSocket.OPEN) {
           socket.close();
           setConnectionStatus('disconnected');
           addMessage({
             role: 'assistant',
-            content: "Connection timeout. Please make sure the server is running.",
+            content: "Connection timed out. The server may still be starting — please try again in a moment.",
             timestamp: new Date()
           });
         }
-      }, 10000);
+      }, 65000);
 
       socket.onopen = () => {
-        clearTimeout(connectionTimeout);
-        console.log('✅ WebSocket connected');
+        clearConnectionTimers();
         setConnectionStatus('connected');
+        reconnectAttemptsRef.current = 0;
         setReconnectAttempts(0);
-        
-        // Send queued messages
         while (messageQueueRef.current.length > 0) {
           const queuedMsg = messageQueueRef.current.shift();
           if (queuedMsg && socket.readyState === WebSocket.OPEN) {
@@ -84,21 +111,16 @@ export default function AdvancedChatbot() {
       };
 
       socket.onmessage = (event) => {
-        console.log('📨 Received:', event.data);
         try {
           const data = JSON.parse(event.data);
-          
           if (data.type === 'error') {
-            console.error('Server error:', data.error);
             addMessage({
               role: 'assistant',
               content: data.response || "I encountered an error. Please try again.",
               timestamp: new Date()
             });
           } else {
-            // Check for meeting flow trigger
             const hasAction = data.action === 'suggest_meeting';
-            
             addMessage({
               role: 'assistant',
               content: data.response || 'I apologize, but I did not receive a proper response.',
@@ -107,37 +129,29 @@ export default function AdvancedChatbot() {
             });
           }
         } catch (e) {
-          console.error('Failed to parse message:', e);
-          addMessage({ 
-            role: 'assistant', 
-            content: event.data, 
-            timestamp: new Date() 
-          });
+          addMessage({ role: 'assistant', content: event.data, timestamp: new Date() });
         }
         setLoading(false);
       };
 
-      socket.onerror = (error) => {
-        clearTimeout(connectionTimeout);
+      socket.onerror = () => {
+        clearConnectionTimers();
         if (!isClosingRef.current) {
-          console.error('❌ WebSocket error:', error);
           setConnectionStatus('disconnected');
         }
       };
 
       socket.onclose = (event) => {
-        clearTimeout(connectionTimeout);
+        clearConnectionTimers();
         if (!isClosingRef.current) {
           console.log('🔌 WebSocket closed:', event.code);
           setConnectionStatus('disconnected');
-          
-          if (isOpen && reconnectAttempts < 3) {
-            const delay = 3000;
-            console.log(`🔄 Reconnecting in ${delay}ms...`);
+          if (isOpenRef.current && reconnectAttemptsRef.current < 3) {
+            reconnectAttemptsRef.current += 1;
+            setReconnectAttempts(reconnectAttemptsRef.current);
             reconnectTimeoutRef.current = setTimeout(() => {
-              setReconnectAttempts(prev => prev + 1);
-              connectWebSocket();
-            }, delay);
+              connectWebSocketRef.current();
+            }, 3000);
           }
         }
       };
@@ -147,13 +161,22 @@ export default function AdvancedChatbot() {
       console.error('Failed to create WebSocket:', error);
       setConnectionStatus('disconnected');
     }
-  }, [isOpen, reconnectAttempts, addMessage]);
+  }, [addMessage, clearConnectionTimers]);
 
+  // Keep the ref in sync so onclose can call the latest version without being a dep
+  useEffect(() => {
+    connectWebSocketRef.current = connectWebSocket;
+  }, [connectWebSocket]);
+
+  // Only depends on isOpen — no more infinite loop from reconnectAttempts
   useEffect(() => {
     if (isOpen) {
+      reconnectAttemptsRef.current = 0;
+      setReconnectAttempts(0);
       connectWebSocket();
     } else {
       isClosingRef.current = true;
+      clearConnectionTimers();
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
@@ -162,12 +185,14 @@ export default function AdvancedChatbot() {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      reconnectAttemptsRef.current = 0;
       setReconnectAttempts(0);
       setConnectionStatus('disconnected');
     }
-    
+
     return () => {
       isClosingRef.current = true;
+      clearConnectionTimers();
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
@@ -176,7 +201,8 @@ export default function AdvancedChatbot() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [isOpen, connectWebSocket]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Auto-scroll
   useEffect(() => {
@@ -244,7 +270,7 @@ export default function AdvancedChatbot() {
                       'bg-red-500'
                     }`} />
                     <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
-                      {connectionStatus}
+                      {connectionStatus === 'connecting' ? 'waking up...' : connectionStatus}
                       {reconnectAttempts > 0 && ` (${reconnectAttempts}/3)`}
                     </span>
                   </div>

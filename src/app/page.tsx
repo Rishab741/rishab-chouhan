@@ -1,6 +1,5 @@
-import { Suspense } from 'react';
-const fs = require('fs').promises;
-const path = require('path');
+import fs from 'fs/promises';
+import path from 'path';
 
 import PortfolioClientLayout from './components/portfolio-layout';
 import { PortfolioData } from './components/types'; // Import from types instead
@@ -19,11 +18,9 @@ export default async function Page() {
 
     const portfolioData: PortfolioData = JSON.parse(jsonData);
 
-    const ClientLayout: any = PortfolioClientLayout;
-
     return (
       <>
-        <ClientLayout portfolioData={portfolioData} />
+        <PortfolioClientLayout portfolioData={portfolioData} />
         <AdvancedChatbot />
       </>
     );

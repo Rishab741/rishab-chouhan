@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
+import Image from 'next/image';
+import { motion, useScroll, useTransform, useSpring, useMotionValue, MotionValue } from 'framer-motion';
 
 // FIX: Correct Relative Imports based on your provided paths
 import { PortfolioData } from '../types'; 
@@ -144,16 +145,14 @@ interface SkillCategorySectionProps {
     category: string;
     skills: string[];
     categoryIndex: number;
-    scrollProgress: any;
+    scrollProgress: MotionValue<number>;
     totalCategories: number;
 }
 
-const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({ 
-    category, 
-    skills, 
+const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
+    category,
+    skills,
     categoryIndex,
-    scrollProgress,
-    totalCategories 
 }) => {
     const sectionRef = useRef<HTMLDivElement>(null);
     
@@ -249,16 +248,15 @@ interface SkillCardProps {
     skill: string;
     skillIndex: number;
     totalSkills: number;
-    categoryProgress: any;
+    categoryProgress: MotionValue<number>;
     startProgress: number;
 }
 
-const SkillCard: React.FC<SkillCardProps> = ({ 
-    skill, 
-    skillIndex, 
+const SkillCard: React.FC<SkillCardProps> = ({
+    skill,
+    skillIndex,
     totalSkills,
     categoryProgress,
-    startProgress 
 }) => {
     const [isHovered, setIsHovered] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -307,10 +305,13 @@ const SkillCard: React.FC<SkillCardProps> = ({
                         }}
                         transition={{ duration: 0.5 }}
                     >
-                        <img
+                        <Image
                             src={`https://cdn.simpleicons.org/${getIconSlug(skill)}/white`}
                             className="w-6 h-6 opacity-60 group-hover:opacity-100 transition-opacity"
                             alt={skill}
+                            width={24}
+                            height={24}
+                            unoptimized
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                             }}
