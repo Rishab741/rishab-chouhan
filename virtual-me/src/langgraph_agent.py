@@ -4,7 +4,8 @@ from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode
@@ -47,12 +48,11 @@ def initialize_components():
     )
 
     tools = [retrieve_context, list_available_slots, request_meeting_approval]
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
-        google_api_key=google_api_key,
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        api_key=os.getenv("OPENAI_API_KEY"),
         temperature=0.7,
-        max_retries=1,
-        transport="rest",  # avoid gRPC/ALTS auth issues on non-GCP hosts
+        max_retries=2,
     ).bind_tools(tools)
     print("✅ INIT | All components initialized successfully")
 
@@ -112,7 +112,7 @@ def think_node(state: AgentState) -> dict:
     if len(messages) > 21:
         messages = [messages[0]] + messages[-20:]
 
-    print(f"🤔 THINK | Invoking LLM with {len(messages)} messages, model=gemini-2.0-flash")
+    print(f"🤔 THINK | Invoking LLM with {len(messages)} messages, model=gpt-4o-mini")
     try:
         with _llm_semaphore:
             ai_response = llm.invoke(messages)
