@@ -1,4 +1,5 @@
 import os
+import threading
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
@@ -15,6 +16,10 @@ from google_calender_tools import list_available_slots, request_meeting_approval
 vector_store = None
 llm = None
 agent = None
+
+# Semaphore ensures only one LLM call runs at a time, preventing
+# concurrent retries from exhausting the free-tier burst limit.
+_llm_semaphore = threading.Semaphore(1)
 
 def initialize_components():
     global vector_store, llm
@@ -44,7 +49,8 @@ def initialize_components():
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.0-flash",
         google_api_key=google_api_key,
-        temperature=0.7
+        temperature=0.7,
+        max_retries=1,  # fail fast — stale retries cause concurrent 429s
     ).bind_tools(tools)
     print("✅ INIT | All components initialized successfully")
 
@@ -106,7 +112,8 @@ def think_node(state: AgentState) -> dict:
 
     print(f"🤔 THINK | Invoking LLM with {len(messages)} messages, model=gemini-2.0-flash")
     try:
-        ai_response = llm.invoke(messages)
+        with _llm_semaphore:
+            ai_response = llm.invoke(messages)
         print(f"✅ THINK | LLM responded, has_tool_calls={bool(getattr(ai_response, 'tool_calls', None))}")
     except Exception as e:
         print(f"❌ THINK | LLM call failed: type={type(e).__name__} module={type(e).__module__}")
