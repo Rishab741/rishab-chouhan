@@ -149,9 +149,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"❌ Error invoking agent: {e}")
                 import traceback
                 traceback.print_exc()
-                
+
+                error_str = str(e).lower()
+                if "429" in error_str or "resource exhausted" in error_str or "quota" in error_str:
+                    user_message = "I'm temporarily unavailable due to API rate limits. Please try again in a few minutes."
+                else:
+                    user_message = "I apologize, but I encountered an error processing your request. Please try again."
+
                 await websocket.send_json({
-                    "response": "I apologize, but I encountered an error processing your request. Please try again.",
+                    "response": user_message,
                     "error": str(e),
                     "type": "error"
                 })
