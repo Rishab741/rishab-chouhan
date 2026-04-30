@@ -36,7 +36,8 @@ def initialize_components():
 
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-001",
-        google_api_key=google_api_key
+        google_api_key=google_api_key,
+        transport="rest",
     )
 
     vector_store = PineconeVectorStore(
@@ -50,7 +51,8 @@ def initialize_components():
         model="gemini-2.0-flash",
         google_api_key=google_api_key,
         temperature=0.7,
-        max_retries=1,  # fail fast — stale retries cause concurrent 429s
+        max_retries=1,
+        transport="rest",  # avoid gRPC/ALTS auth issues on non-GCP hosts
     ).bind_tools(tools)
     print("✅ INIT | All components initialized successfully")
 
