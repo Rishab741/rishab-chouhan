@@ -175,16 +175,82 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint"""
     agent = get_agent_safe()
-    status = "healthy" if agent else "degraded"
-    
     return {
-        "status": status,
+        "status": "healthy" if agent else "degraded",
         "pinecone_index": os.getenv("PINECONE_INDEX"),
         "google_api_configured": bool(os.getenv("GOOGLE_API_KEY")),
         "calendar_configured": bool(os.getenv("GCP_SERVICE_ACCOUNT_JSON"))
     }
+
+@app.get("/debug")
+async def debug_components():
+    """Test each component independently to isolate failures."""
+    import traceback as tb
+    results = {}
+
+    # 1. Env vars
+    google_key = os.getenv("GOOGLE_API_KEY", "")
+    results["env"] = {
+        "GOOGLE_API_KEY": f"set (prefix={google_key[:8]})" if google_key else "MISSING",
+        "PINECONE_API_KEY": "set" if os.getenv("PINECONE_API_KEY") else "MISSING",
+        "PINECONE_INDEX": os.getenv("PINECONE_INDEX") or "MISSING",
+        "GCP_SERVICE_ACCOUNT_JSON": "set" if os.getenv("GCP_SERVICE_ACCOUNT_JSON") else "MISSING",
+        "LANGSMITH_TRACING": os.getenv("LANGSMITH_TRACING", "not set"),
+    }
+
+    # 2. Gemini LLM — simple non-tool call
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import HumanMessage as HM
+        test_llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=google_key, temperature=0)
+        resp = test_llm.invoke([HM(content="Reply with the word OK only.")])
+        results["gemini_llm"] = {"status": "ok", "response": resp.content[:50]}
+    except Exception as e:
+        results["gemini_llm"] = {
+            "status": "FAILED",
+            "exception_type": type(e).__name__,
+            "exception_module": type(e).__module__,
+            "detail": str(e),
+            "traceback": tb.format_exc()
+        }
+
+    # 3. Gemini Embeddings
+    try:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        emb = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=google_key)
+        vec = emb.embed_query("test")
+        results["gemini_embeddings"] = {"status": "ok", "dimensions": len(vec)}
+    except Exception as e:
+        results["gemini_embeddings"] = {
+            "status": "FAILED",
+            "exception_type": type(e).__name__,
+            "exception_module": type(e).__module__,
+            "detail": str(e)
+        }
+
+    # 4. Pinecone
+    try:
+        from langchain_pinecone import PineconeVectorStore
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        emb = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=google_key)
+        vs = PineconeVectorStore(
+            index_name=os.getenv("PINECONE_INDEX"),
+            embedding=emb,
+            pinecone_api_key=os.getenv("PINECONE_API_KEY")
+        )
+        docs = vs.similarity_search("skills", k=1)
+        results["pinecone"] = {"status": "ok", "docs_returned": len(docs)}
+    except Exception as e:
+        results["pinecone"] = {
+            "status": "FAILED",
+            "exception_type": type(e).__name__,
+            "exception_module": type(e).__module__,
+            "detail": str(e)
+        }
+
+    print(f"🔍 DEBUG endpoint results: {results}")
+    return results
 
 @app.get("/")
 def root():

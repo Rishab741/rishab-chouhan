@@ -18,31 +18,35 @@ agent = None
 
 def initialize_components():
     global vector_store, llm
-    if llm is not None: 
+    if llm is not None:
         return
-    
+
     google_api_key = os.getenv("GOOGLE_API_KEY")
-    
-    # Initialize Embeddings
+    pinecone_api_key = os.getenv("PINECONE_API_KEY")
+    pinecone_index = os.getenv("PINECONE_INDEX")
+
+    print(f"🔧 INIT | GOOGLE_API_KEY present: {bool(google_api_key)} prefix={google_api_key[:8] if google_api_key else 'MISSING'}")
+    print(f"🔧 INIT | PINECONE_API_KEY present: {bool(pinecone_api_key)}")
+    print(f"🔧 INIT | PINECONE_INDEX: {pinecone_index}")
+
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-001",
         google_api_key=google_api_key
     )
-    
-    # Initialize Vector Store
+
     vector_store = PineconeVectorStore(
-        index_name=os.getenv("PINECONE_INDEX"),
+        index_name=pinecone_index,
         embedding=embeddings,
-        pinecone_api_key=os.getenv("PINECONE_API_KEY")
+        pinecone_api_key=pinecone_api_key
     )
 
-    # Bind tools to the LLM (Using the new request_meeting_approval)
     tools = [retrieve_context, list_available_slots, request_meeting_approval]
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-2.0-flash",
         google_api_key=google_api_key,
         temperature=0.7
     ).bind_tools(tools)
+    print("✅ INIT | All components initialized successfully")
 
 @tool
 def retrieve_context(query: str) -> str:
@@ -94,15 +98,24 @@ def think_node(state: AgentState) -> dict:
 
     messages = list(state["messages"])
 
-    # Add system message if not present
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
 
-    # Keep system message + last 20 messages to prevent context bloat
     if len(messages) > 21:
         messages = [messages[0]] + messages[-20:]
 
-    ai_response = llm.invoke(messages)
+    print(f"🤔 THINK | Invoking LLM with {len(messages)} messages, model=gemini-2.0-flash")
+    try:
+        ai_response = llm.invoke(messages)
+        print(f"✅ THINK | LLM responded, has_tool_calls={bool(getattr(ai_response, 'tool_calls', None))}")
+    except Exception as e:
+        print(f"❌ THINK | LLM call failed: type={type(e).__name__} module={type(e).__module__}")
+        print(f"❌ THINK | Error detail: {e}")
+        if hasattr(e, 'grpc_status_code'):
+            print(f"❌ THINK | gRPC status: {e.grpc_status_code}")
+        if hasattr(e, 'errors'):
+            print(f"❌ THINK | API errors: {e.errors}")
+        raise
 
     return {
         "messages": [ai_response],
