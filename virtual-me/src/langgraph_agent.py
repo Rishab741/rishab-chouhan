@@ -88,7 +88,7 @@ IMPORTANT GUIDELINES:
 - If a tool fails, explain the error clearly and offer to try a different date or provide contact info.
 """
 
-async def think_node(state: AgentState) -> dict:
+def think_node(state: AgentState) -> dict:
     """Main reasoning node - decides what to do next"""
     initialize_components()
 
@@ -102,7 +102,7 @@ async def think_node(state: AgentState) -> dict:
     if len(messages) > 21:
         messages = [messages[0]] + messages[-20:]
 
-    ai_response = await llm.ainvoke(messages)
+    ai_response = llm.invoke(messages)
 
     return {
         "messages": [ai_response],
