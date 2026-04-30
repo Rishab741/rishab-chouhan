@@ -64,8 +64,8 @@ async def chat(request: ChatRequest):
     }
     
     try:
-        result = agent.invoke(initial_state)
-        
+        result = await agent.ainvoke(initial_state)
+
         # Check if response triggers meeting flow
         response_text = result.get("response", "Error")
         action = None
@@ -121,7 +121,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             try:
                 # Invoke agent
-                result = agent.invoke(initial_state)
+                result = await agent.ainvoke(initial_state)
                 session_messages = result.get("messages", [])
                 
                 response_text = result.get("response", "I apologize, but I encountered an error.")

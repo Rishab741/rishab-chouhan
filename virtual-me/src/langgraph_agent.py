@@ -52,7 +52,7 @@ def retrieve_context(query: str) -> str:
     initialize_components()
     try:
         print(f"DEBUG: Searching Pinecone for: {query}")
-        results = vector_store.similarity_search(query, k=5)
+        results = vector_store.similarity_search(query, k=3)
         context = "\n\n".join([doc.page_content for doc in results])
         return f"RETRIEVED CONTEXT:\n{context}"
     except Exception as e:
@@ -88,19 +88,22 @@ IMPORTANT GUIDELINES:
 - If a tool fails, explain the error clearly and offer to try a different date or provide contact info.
 """
 
-def think_node(state: AgentState) -> dict:
+async def think_node(state: AgentState) -> dict:
     """Main reasoning node - decides what to do next"""
     initialize_components()
-    
-    messages = state["messages"]
-    
+
+    messages = list(state["messages"])
+
     # Add system message if not present
     if not any(isinstance(m, SystemMessage) for m in messages):
-        messages = [SystemMessage(content=SYSTEM_PROMPT)] + list(messages)
-    
-    # Invoke LLM
-    ai_response = llm.invoke(messages)
-    
+        messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
+
+    # Keep system message + last 20 messages to prevent context bloat
+    if len(messages) > 21:
+        messages = [messages[0]] + messages[-20:]
+
+    ai_response = await llm.ainvoke(messages)
+
     return {
         "messages": [ai_response],
         "thinking": "Analyzing request..."
