@@ -1,11 +1,11 @@
 import os
+import time
 import threading
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode
@@ -18,9 +18,11 @@ vector_store = None
 llm = None
 agent = None
 
-# Semaphore ensures only one LLM call runs at a time, preventing
-# concurrent retries from exhausting the free-tier burst limit.
+# Semaphore: only one LLM call at a time to prevent concurrent burst.
+# Cooldown: after a 429, wait 60s before retrying to let the quota recover.
 _llm_semaphore = threading.Semaphore(1)
+_last_429_at: float = 0.0
+_COOLDOWN_SECONDS = 60
 
 def initialize_components():
     global vector_store, llm
@@ -48,11 +50,12 @@ def initialize_components():
     )
 
     tools = [retrieve_context, list_available_slots, request_meeting_approval]
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=os.getenv("OPENAI_API_KEY"),
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash-preview-05-20",
+        google_api_key=google_api_key,
         temperature=0.7,
-        max_retries=2,
+        max_retries=1,
+        transport="rest",
     ).bind_tools(tools)
     print("✅ INIT | All components initialized successfully")
 
@@ -112,18 +115,23 @@ def think_node(state: AgentState) -> dict:
     if len(messages) > 21:
         messages = [messages[0]] + messages[-20:]
 
-    print(f"🤔 THINK | Invoking LLM with {len(messages)} messages, model=gpt-4o-mini")
+    print(f"🤔 THINK | Invoking LLM with {len(messages)} messages")
     try:
         with _llm_semaphore:
+            global _last_429_at
+            elapsed = time.time() - _last_429_at
+            if elapsed < _COOLDOWN_SECONDS:
+                wait = _COOLDOWN_SECONDS - elapsed
+                print(f"⏳ THINK | 429 cooldown active, waiting {wait:.0f}s")
+                time.sleep(wait)
             ai_response = llm.invoke(messages)
         print(f"✅ THINK | LLM responded, has_tool_calls={bool(getattr(ai_response, 'tool_calls', None))}")
     except Exception as e:
-        print(f"❌ THINK | LLM call failed: type={type(e).__name__} module={type(e).__module__}")
-        print(f"❌ THINK | Error detail: {e}")
-        if hasattr(e, 'grpc_status_code'):
-            print(f"❌ THINK | gRPC status: {e.grpc_status_code}")
-        if hasattr(e, 'errors'):
-            print(f"❌ THINK | API errors: {e.errors}")
+        error_str = str(e).lower()
+        if "429" in error_str or "resource exhausted" in error_str or "toomany" in type(e).__name__.lower():
+            _last_429_at = time.time()
+            print(f"⏳ THINK | 429 recorded — next call will wait {_COOLDOWN_SECONDS}s")
+        print(f"❌ THINK | LLM call failed: type={type(e).__name__} detail={e}")
         raise
 
     return {
