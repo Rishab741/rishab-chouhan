@@ -39,7 +39,7 @@ def initialize_components():
     # Bind tools to the LLM (Using the new request_meeting_approval)
     tools = [retrieve_context, list_available_slots, request_meeting_approval]
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="gemini-2.5-flash-preview-05-20",
         google_api_key=google_api_key,
         temperature=0.7
     ).bind_tools(tools)
