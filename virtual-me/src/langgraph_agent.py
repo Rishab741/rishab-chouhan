@@ -113,7 +113,12 @@ def think_node(state: AgentState) -> dict:
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
 
     if len(messages) > 21:
-        messages = [messages[0]] + messages[-20:]
+        system_msg = messages[0]
+        tail = messages[-20:]
+        # Gemini requires history to start with a human turn after the system message.
+        # Trim blindly can leave an AIMessage(tool_calls) first, which causes a 400.
+        first_human = next((i for i, m in enumerate(tail) if isinstance(m, HumanMessage)), 0)
+        messages = [system_msg] + tail[first_human:]
 
     print(f"🤔 THINK | Invoking LLM with {len(messages)} messages")
     try:
