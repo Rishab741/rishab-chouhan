@@ -51,7 +51,7 @@ def initialize_components():
 
     tools = [retrieve_context, list_available_slots, request_meeting_approval]
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-2.5-flash",
         google_api_key=google_api_key,
         temperature=0.7,
         max_retries=1,
