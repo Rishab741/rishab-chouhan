@@ -3,10 +3,23 @@ import json
 from langchain.agents import tool
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-PERSONAL_CALENDAR_ID = "crishab07@gmail.com" 
+PERSONAL_CALENDAR_ID = "crishab07@gmail.com"
+
+# Sydney is UTC+10 (AEST, April–October). Daylight saving (AEDT, UTC+11) runs Oct–Apr.
+# Using zoneinfo if tzdata is available, otherwise falling back to fixed AEST offset.
+try:
+    from zoneinfo import ZoneInfo
+    SYDNEY_TZ = ZoneInfo("Australia/Sydney")
+    def _sydney_dt(year, month, day, hour, minute=0, second=0):
+        return datetime(year, month, day, hour, minute, second, tzinfo=SYDNEY_TZ)
+except Exception:
+    SYDNEY_TZ = timezone(timedelta(hours=10))  # AEST fallback
+    def _sydney_dt(year, month, day, hour, minute=0, second=0):
+        return datetime(year, month, day, hour, minute, second, tzinfo=SYDNEY_TZ)
+
 
 def get_calendar_service():
     """Loads credentials from environment variable and returns a service object."""
@@ -18,50 +31,87 @@ def get_calendar_service():
     info = json.loads(creds_json)
     if "private_key" in info:
         info["private_key"] = info["private_key"].replace("\\n", "\n")
-        
+
     creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
     return build('calendar', 'v3', credentials=creds)
 
+
 @tool
 def list_available_slots(date_str: str) -> str:
-    """Check availability for a date (format: YYYY-MM-DD)."""
+    """Check Rishab's availability for a given date (format: YYYY-MM-DD).
+    Returns available time slots in AEST (Sydney, Australia) timezone.
+    """
     try:
         service = get_calendar_service()
-        t_min = f"{date_str}T09:00:00Z"
-        t_max = f"{date_str}T17:00:00Z"
-        
+
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+        day_start = _sydney_dt(date.year, date.month, date.day, 9)
+        day_end = _sydney_dt(date.year, date.month, date.day, 17)
+
+        # Convert to UTC for the freebusy API
+        t_min = day_start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        t_max = day_end.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
         body = {
             "timeMin": t_min,
             "timeMax": t_max,
             "items": [{"id": PERSONAL_CALENDAR_ID}]
         }
-        
+
         fb_result = service.freebusy().query(body=body).execute()
         busy_slots = fb_result['calendars'][PERSONAL_CALENDAR_ID]['busy']
-        
+
         if not busy_slots:
-            return f"I am fully available on {date_str} between 9 AM and 5 PM UTC."
-        
-        slots_str = ", ".join([f"{s['start']} to {s['end']}" for s in busy_slots])
-        return f"On {date_str}, I am busy: {slots_str}. Other times between 9AM-5PM UTC are free."
+            return (f"Rishab is fully available on {date_str} between 9:00 AM and 5:00 PM "
+                    f"AEST (Sydney, Australia). All times are in Sydney local time.")
+
+        busy_display = []
+        for s in busy_slots:
+            start_utc = datetime.fromisoformat(s['start'].replace('Z', '+00:00'))
+            end_utc = datetime.fromisoformat(s['end'].replace('Z', '+00:00'))
+            start_aest = start_utc.astimezone(SYDNEY_TZ).strftime("%I:%M %p")
+            end_aest = end_utc.astimezone(SYDNEY_TZ).strftime("%I:%M %p")
+            busy_display.append(f"{start_aest} to {end_aest}")
+
+        slots_str = ", ".join(busy_display)
+        return (f"On {date_str}, Rishab is busy (AEST): {slots_str}. "
+                f"Other times between 9:00 AM and 5:00 PM AEST are free.")
     except Exception as e:
         return f"Error checking calendar: {str(e)}"
 
+
 @tool
-def request_meeting_approval(start_time_iso: str, guest_email: str, meeting_context: str) -> str:
+def request_meeting_approval(start_time_str: str, guest_email: str, meeting_context: str) -> str:
     """
-    Proposes a 30-min meeting by adding a tentative request to the calendar. 
+    Proposes a 30-min meeting by adding a tentative request to Rishab's calendar.
     Rishab must manually accept this to confirm.
     Args:
-        start_time_iso: The start time in ISO format (YYYY-MM-DDTHH:MM:SSZ).
+        start_time_str: Start time in AEST (Sydney) as 'YYYY-MM-DDTHH:MM:SS' — no Z suffix, no UTC conversion.
+                        Example: '2026-05-02T11:00:00' means 11:00 AM Sydney time.
         guest_email: The email of the person requesting the meeting.
         meeting_context: A brief summary of why the person wants to meet.
     """
     try:
         service = get_calendar_service()
-        dt = datetime.fromisoformat(start_time_iso.replace('Z', ''))
-        end_time = (dt + timedelta(minutes=30)).isoformat() + "Z"
-        
+
+        # Strip any accidental Z or UTC offset — treat bare datetime as Sydney time
+        clean_str = start_time_str.replace('Z', '')
+        if '+' in clean_str:
+            clean_str = clean_str[:clean_str.index('+')]
+        # If it already has offset info after the time part, strip it
+        parts = clean_str.split('T')
+        if len(parts) == 2:
+            time_part = parts[1][:8]  # take only HH:MM:SS
+            clean_str = f"{parts[0]}T{time_part}"
+
+        dt_naive = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+        dt_sydney = dt_naive.replace(tzinfo=SYDNEY_TZ)
+        dt_end_sydney = dt_sydney + timedelta(minutes=30)
+
+        start_iso = dt_sydney.isoformat()
+        end_iso = dt_end_sydney.isoformat()
+        display_time = dt_sydney.strftime("%B %d, %Y at %I:%M %p AEST")
+
         event = {
             'summary': f'📅 PENDING: Meeting with {guest_email}',
             'description': (
@@ -71,33 +121,25 @@ def request_meeting_approval(start_time_iso: str, guest_email: str, meeting_cont
                 f"ACTION REQUIRED: Please click 'Yes' to confirm this meeting. "
                 f"A Google Meet link will be automatically generated upon confirmation."
             ),
-            'start': {'dateTime': start_time_iso, 'timeZone': 'UTC'},
-            'end': {'dateTime': end_time, 'timeZone': 'UTC'},
-            # PART A LOGIC:
-            'status': 'tentative',        # Marks as tentative request
-            'transparency': 'transparent', # Shows as 'Free' so it doesn't block your day yet
-        #     'conferenceData': {
-        #         'createRequest': {
-        #             'requestId': f"meet_{int(datetime.now().timestamp())}",
-        #             'conferenceSolutionKey': {'type': 'hangoutsMeet'}
-        #         }
-        #     }
-         }
-        
+            'start': {'dateTime': start_iso, 'timeZone': 'Australia/Sydney'},
+            'end': {'dateTime': end_iso, 'timeZone': 'Australia/Sydney'},
+            'status': 'tentative',
+            'transparency': 'transparent',
+        }
+
         service.events().insert(
-            calendarId=PERSONAL_CALENDAR_ID, 
+            calendarId=PERSONAL_CALENDAR_ID,
             body=event
-            # conferenceDataVersion=1
         ).execute()
-        
-        return (f"I've placed a tentative meeting request on Rishab's calendar for {start_time_iso}. "
+
+        return (f"I've placed a tentative meeting request on Rishab's calendar for {display_time}. "
                 "Once he reviews the context and accepts it, the meeting will be finalized.")
-                
+
     except Exception as e:
         return f"Failed to send request: {str(e)}"
+
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
-    # Test checking tomorrow's date
-    print(list_available_slots.invoke("2026-02-12"))
+    print(list_available_slots.invoke("2026-05-02"))
