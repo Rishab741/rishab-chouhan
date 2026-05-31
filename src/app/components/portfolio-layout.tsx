@@ -64,41 +64,41 @@ export default function PortfolioClientLayout({ portfolioData }: { portfolioData
         </section>
 
         {/* Experience Timeline */}
-        <section id="experience" className="mt-24 md:mt-40">
+        <section id="experience" className="mt-10 md:mt-16">
           <Experience portfolioData={portfolioData} />
         </section>
 
         {/* Projects Grid */}
-        <section id="projects" className="mt-24 md:mt-40">
+        <section id="projects" className="mt-10 md:mt-16">
           <Projects portfolioData={portfolioData} />
         </section>
 
         {/* Contact/CTA */}
-        <section id="contact" className="py-24 px-6 text-center mt-24 md:mt-40">
-          <motion.div 
+        <section id="contact" className="py-14 px-6 text-center mt-10 md:mt-16">
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="max-w-3xl mx-auto p-12 rounded-[3rem] bg-gradient-to-b from-zinc-900 to-black border border-white/10 shadow-2xl"
+            className="max-w-2xl mx-auto p-8 rounded-3xl bg-gradient-to-b from-zinc-900 to-black border border-white/10 shadow-2xl"
           >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
               Based in {portfolioData.contact.location.split(',')[0]}
             </h2>
-            <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
-              Available for full-time opportunities in Full-Stack Engineering, 
+            <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+              Available for full-time opportunities in Full-Stack Engineering,
               Blockchain development, and AI integration.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
               <a
                 href={`mailto:${portfolioData.contact.email}`}
-                className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-zinc-200 transition-all"
+                className="px-6 py-3 bg-white text-black rounded-full font-bold text-sm hover:bg-zinc-200 transition-all"
               >
                 Email Me
               </a>
               <a
                 href={portfolioData.contact.linkedin}
                 target="_blank"
-                className="px-8 py-4 bg-white/5 border border-white/10 rounded-full font-bold hover:bg-white/10 transition-all"
+                className="px-6 py-3 bg-white/5 border border-white/10 rounded-full font-bold text-sm hover:bg-white/10 transition-all"
               >
                 LinkedIn
               </a>
@@ -113,7 +113,7 @@ export default function PortfolioClientLayout({ portfolioData }: { portfolioData
       </main>
 
       {/* Footer */}
-      <footer className="py-20 px-6 border-t border-white/5 text-center text-zinc-600">
+      <footer className="py-10 px-6 border-t border-white/5 text-center text-zinc-600">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-center gap-8 mb-6">
             <MapPin className="w-4 h-4" /> {portfolioData.contact.location}

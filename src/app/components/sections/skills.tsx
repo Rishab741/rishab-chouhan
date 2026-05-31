@@ -62,7 +62,7 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
     const totalSkills = categories.reduce((acc, [, skills]) => acc + skills.length, 0);
 
     return (
-        <section id="skills" ref={containerRef} className="relative py-48 bg-black overflow-hidden">
+        <section id="skills" ref={containerRef} className="relative py-16 bg-black overflow-hidden">
             {/* Animated Grid Background */}
             <div className="absolute inset-0 opacity-20">
                 <div className="absolute inset-0" 
@@ -82,8 +82,8 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
             <div className="container mx-auto px-6 max-w-7xl relative z-10">
                 
                 {/* Scroll-Driven Header */}
-                <motion.div 
-                    className="text-center mb-32"
+                <motion.div
+                    className="text-center mb-12"
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
@@ -95,7 +95,7 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
                         </span>
                     </motion.div>
                     
-                    <h2 className="text-6xl md:text-8xl font-black mb-6 tracking-tight">
+                    <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
                         <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-zinc-600">
                             Skills &
                         </span>
@@ -105,13 +105,13 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
                         </span>
                     </h2>
                     
-                    <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+                    <p className="text-zinc-400 text-sm max-w-xl mx-auto">
                         Mastery across {totalSkills}+ technologies, frameworks, and platforms
                     </p>
                 </motion.div>
 
                 {/* The Main Skills Display */}
-                <div className="space-y-20">
+                <div className="space-y-8">
                     {categories.map(([category, skills], categoryIndex) => (
                         <SkillCategorySection
                             key={category}
@@ -125,8 +125,8 @@ export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
                 </div>
 
                 {/* Constellation Background Integration */}
-                <motion.div 
-                    className="mt-32"
+                <motion.div
+                    className="mt-12"
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true, margin: "-200px" }}
@@ -176,9 +176,9 @@ const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
     const sectionScale = useTransform(smoothSectionProgress, [0, 0.25, 0.85, 1], [0.95, 1, 1, 0.98]);
 
     return (
-        <motion.div 
+        <motion.div
             ref={sectionRef}
-            className="relative min-h-[80vh] flex items-center justify-center py-20"
+            className="relative flex items-center justify-center py-6"
             style={{
                 opacity: sectionOpacity,
                 y: sectionY,
@@ -187,7 +187,7 @@ const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
         >
             <div className="w-full max-w-7xl mx-auto px-6">
             {/* Category Header with Animated Line */}
-            <div className="flex items-center gap-6 mb-16">
+            <div className="flex items-center gap-4 mb-6">
                 <motion.div 
                     className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"
                     style={{
@@ -195,8 +195,8 @@ const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
                     }}
                 />
                 
-                <motion.h3 
-                    className="text-4xl md:text-5xl font-bold whitespace-nowrap"
+                <motion.h3
+                    className="text-xl md:text-2xl font-bold whitespace-nowrap"
                     style={{
                         opacity: useTransform(smoothSectionProgress, [0.05, 0.25], [0, 1]),
                         x: useTransform(smoothSectionProgress, [0.05, 0.25], [-30, 0])
@@ -216,7 +216,7 @@ const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
             </div>
 
             {/* Skills Grid with Staggered Reveal */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {skills.map((skill, skillIndex) => (
                     <SkillCard
                         key={skill}
@@ -293,12 +293,12 @@ const SkillCard: React.FC<SkillCardProps> = ({
             />
 
             {/* Card */}
-            <div className="relative h-full p-6 bg-zinc-900/50 border border-white/5 rounded-2xl backdrop-blur-xl hover:bg-zinc-800/50 hover:border-white/10 transition-all duration-300 cursor-default">
-                
+            <div className="relative h-full p-4 bg-zinc-900/50 border border-white/5 rounded-xl backdrop-blur-xl hover:bg-zinc-800/50 hover:border-white/10 transition-all duration-300 cursor-default">
+
                 {/* Icon */}
-                <div className="mb-4 flex items-center justify-center">
-                    <motion.div 
-                        className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors"
+                <div className="mb-2 flex items-center justify-center">
+                    <motion.div
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors"
                         animate={{
                             rotate: isHovered ? [0, -10, 10, 0] : 0
                         }}

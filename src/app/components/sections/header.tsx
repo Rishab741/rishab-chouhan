@@ -8,10 +8,10 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
     const containerRef = useRef<HTMLDivElement>(null);
 
     return (
-        <section 
+        <section
             id="home"
             ref={containerRef}
-            className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black pt-20"
+            className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-black pt-16"
         >
             {/* Animated Background Grid */}
             <div className="absolute inset-0 opacity-20">
@@ -30,8 +30,8 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
             <div className="absolute inset-0 bg-gradient-radial from-blue-900/10 via-transparent to-transparent" />
 
             {/* Floating Orbs */}
-            <motion.div 
-                className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]"
+            <motion.div
+                className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"
                 animate={{
                     x: [0, 50, 0],
                     y: [0, 30, 0],
@@ -43,8 +43,8 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                     ease: "easeInOut"
                 }}
             />
-            <motion.div 
-                className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]"
+            <motion.div
+                className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px]"
                 animate={{
                     x: [0, -50, 0],
                     y: [0, -30, 0],
@@ -58,11 +58,11 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                 }}
             />
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
-                    
+            <div className="relative z-10 max-w-6xl mx-auto px-6 py-10">
+                <div className="grid lg:grid-cols-2 gap-10 items-center">
+
                     {/* Left Column - Content */}
-                    <div className="space-y-8">
+                    <div className="space-y-5">
                         
                         {/* Top Badge */}
                         <motion.div
@@ -86,7 +86,7 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.2 }}
                         >
-                            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1] mb-6">
+                            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-4">
                                 <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-zinc-600">
                                     {portfolioData.name.split(' ')[0]}
                                 </span>
@@ -96,9 +96,9 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                             </h1>
 
                             {/* Role with Accent */}
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="h-px w-12 bg-gradient-to-r from-blue-500 to-transparent"></div>
-                                <h2 className="text-xl md:text-2xl font-semibold text-zinc-300">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-px w-10 bg-gradient-to-r from-blue-500 to-transparent"></div>
+                                <h2 className="text-base md:text-lg font-semibold text-zinc-300">
                                     {portfolioData.role}
                                 </h2>
                             </div>
@@ -114,7 +114,7 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.4 }}
-                            className="text-lg text-zinc-400 leading-relaxed max-w-xl"
+                            className="text-sm text-zinc-400 leading-relaxed max-w-lg"
                         >
                             {portfolioData.bio}
                         </motion.p>
@@ -128,18 +128,18 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                         >
                             <a
                                 href={`mailto:${portfolioData.contact.email}`}
-                                className="group relative px-8 py-4 bg-white text-black rounded-full font-bold hover:scale-105 transition-all overflow-hidden shadow-lg hover:shadow-white/20"
+                                className="group relative px-6 py-3 bg-white text-black rounded-full font-bold text-sm hover:scale-105 transition-all overflow-hidden shadow-lg hover:shadow-white/20"
                             >
                                 <span className="relative z-10 flex items-center gap-2">
                                     Get In Touch
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </span>
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity" />
                             </a>
-                            
+
                             <button
                                 onClick={() => document.getElementById('projects')?.scrollIntoView({behavior: 'smooth'})}
-                                className="group px-8 py-4 bg-white/5 border border-white/10 rounded-full font-bold hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm flex items-center gap-2"
+                                className="group px-6 py-3 bg-white/5 border border-white/10 rounded-full font-bold text-sm hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm flex items-center gap-2"
                             >
                                 View Work
                                 <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -151,9 +151,9 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.8 }}
-                            className="flex items-center gap-3 pt-4"
+                            className="flex items-center gap-2 pt-2"
                         >
-                            <span className="text-sm text-zinc-500 font-medium mr-2">Connect:</span>
+                            <span className="text-xs text-zinc-500 font-medium mr-1">Connect:</span>
                             {[
                                 { icon: Github, href: portfolioData.contact.github, label: 'GitHub' },
                                 { icon: Linkedin, href: portfolioData.contact.linkedin, label: 'LinkedIn' },
@@ -164,7 +164,7 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                                     href={social.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group relative p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
+                                    className="group relative p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
                                     whileHover={{ scale: 1.1, rotate: 5 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
@@ -191,33 +191,33 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                             <div className="grid grid-cols-2 gap-4">
                                 
                                 {/* Large Feature Card */}
-                                <div className="col-span-2 group relative p-8 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 border border-white/10 rounded-3xl backdrop-blur-xl hover:border-blue-500/30 transition-all duration-500">
-                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
+                                <div className="col-span-2 group relative p-5 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 border border-white/10 rounded-2xl backdrop-blur-xl hover:border-blue-500/30 transition-all duration-500">
+                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
                                     <div className="relative">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className="p-3 bg-blue-500/10 rounded-xl">
-                                                <Sparkles className="w-6 h-6 text-blue-400" />
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-xl">
+                                                <Sparkles className="w-5 h-5 text-blue-400" />
                                             </div>
                                             <div>
-                                                <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400">
+                                                <div className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400">
                                                     2+ Years
                                                 </div>
-                                                <div className="text-sm text-zinc-500 font-mono uppercase tracking-wider">
+                                                <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
                                                     Experience
                                                 </div>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-zinc-400 leading-relaxed">
+                                        <p className="text-xs text-zinc-400 leading-relaxed">
                                             Building scalable solutions across blockchain, AI, and full-stack development
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Stat Card 1 */}
-                                <div className="group relative p-6 bg-zinc-900/30 border border-white/5 rounded-3xl backdrop-blur-xl hover:bg-zinc-800/40 hover:border-blue-500/20 transition-all duration-500">
-                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
+                                <div className="group relative p-4 bg-zinc-900/30 border border-white/5 rounded-2xl backdrop-blur-xl hover:bg-zinc-800/40 hover:border-blue-500/20 transition-all duration-500">
+                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
                                     <div className="relative">
-                                        <div className="text-4xl font-black mb-2 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-blue-400 group-hover:to-purple-400 transition-all">
+                                        <div className="text-3xl font-black mb-1 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-blue-400 group-hover:to-purple-400 transition-all">
                                             3
                                         </div>
                                         <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
@@ -227,10 +227,10 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                                 </div>
 
                                 {/* Stat Card 2 */}
-                                <div className="group relative p-6 bg-zinc-900/30 border border-white/5 rounded-3xl backdrop-blur-xl hover:bg-zinc-800/40 hover:border-purple-500/20 transition-all duration-500">
-                                    <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
+                                <div className="group relative p-4 bg-zinc-900/30 border border-white/5 rounded-2xl backdrop-blur-xl hover:bg-zinc-800/40 hover:border-purple-500/20 transition-all duration-500">
+                                    <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
                                     <div className="relative">
-                                        <div className="text-4xl font-black mb-2 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
+                                        <div className="text-3xl font-black mb-1 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
                                             80%
                                         </div>
                                         <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
@@ -240,8 +240,8 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
                                 </div>
 
                                 {/* Tech Stack Preview */}
-                                <div className="col-span-2 group relative p-6 bg-zinc-900/30 border border-white/5 rounded-3xl backdrop-blur-xl hover:border-white/10 transition-all duration-500">
-                                    <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider mb-4">
+                                <div className="col-span-2 group relative p-4 bg-zinc-900/30 border border-white/5 rounded-2xl backdrop-blur-xl hover:border-white/10 transition-all duration-500">
+                                    <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider mb-3">
                                         Core Tech Stack
                                     </div>
                                     <div className="flex flex-wrap gap-2">

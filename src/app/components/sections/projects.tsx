@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useState } from 'react';
-import { ArrowUpRight, Github } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { PortfolioData } from '../types';
 import { SectionTitle } from '../ui/DesignSystem';
 
@@ -45,22 +45,19 @@ const SpotlightCard = ({ children, className = "" }: { children: React.ReactNode
 
 export const Projects: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioData }) => {
     return (
-        <section id="projects" className="py-32 relative">
+        <section id="projects" className="py-14 relative">
             <div className="container mx-auto px-6 max-w-7xl">
                 <SectionTitle title="Featured Projects" subtitle="Portfolio" />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {portfolioData.projects.map((project, index) => (
                         <SpotlightCard key={index} className="h-full group">
-                            <div className="p-8 h-full flex flex-col">
+                            <div className="p-5 h-full flex flex-col">
                                 {/* Top Area */}
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-colors">
-                                        <Github className="w-6 h-6 text-gray-300 group-hover:text-blue-400" />
-                                    </div>
-                                    <div className="flex gap-2">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex gap-2 flex-wrap">
                                         {project.technologies.slice(0, 3).map(tech => (
-                                            <span key={tech} className="px-3 py-1 text-xs font-medium text-gray-400 bg-white/5 rounded-full border border-white/5">
+                                            <span key={tech} className="px-2 py-1 text-xs font-medium text-gray-400 bg-white/5 rounded-full border border-white/5">
                                                 {tech}
                                             </span>
                                         ))}
@@ -68,10 +65,10 @@ export const Projects: React.FC<{ portfolioData: PortfolioData }> = ({ portfolio
                                 </div>
 
                                 {/* Content */}
-                                <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">
+                                <h3 className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
                                     {project.title}
                                 </h3>
-                                <p className="text-gray-400 leading-relaxed mb-8 flex-grow">
+                                <p className="text-gray-400 text-sm leading-relaxed mb-4 flex-grow">
                                     {project.description}
                                 </p>
 

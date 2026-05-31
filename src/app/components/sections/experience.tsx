@@ -6,7 +6,7 @@ import { PortfolioData } from '../types';
 
 export const Experience: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioData }) => {
     return (
-        <section id="experience" className="py-32 relative overflow-hidden">
+        <section id="experience" className="py-14 relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute inset-0 opacity-20">
                 <div className="absolute inset-0" 
@@ -27,12 +27,12 @@ export const Experience: React.FC<{ portfolioData: PortfolioData }> = ({ portfol
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-center mb-20"
+                    className="text-center mb-12"
                 >
                     <span className="inline-block px-4 py-2 text-xs font-mono tracking-[0.3em] uppercase border border-purple-500/30 rounded-full text-purple-400 bg-purple-500/5 mb-6">
                         Career Path
                     </span>
-                    <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-4">
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3">
                         <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-zinc-600">
                             Professional
                         </span>
@@ -51,7 +51,7 @@ export const Experience: React.FC<{ portfolioData: PortfolioData }> = ({ portfol
                     {/* Vertical Timeline Line - Desktop Only */}
                     <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500/30 via-purple-500/30 to-pink-500/30 -translate-x-1/2" />
 
-                    <div className="space-y-8 md:space-y-16">
+                    <div className="space-y-6 md:space-y-10">
                         {portfolioData.experience.map((job, index) => (
                             <ExperienceCard 
                                 key={index}
@@ -121,9 +121,9 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
                     isEven ? '' : 'md:col-start-2'
                 }`}
             >
-                <div className="group relative p-8 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 border border-white/10 rounded-[2.5rem] backdrop-blur-2xl hover:border-purple-500/30 transition-all duration-500">
+                <div className="group relative p-5 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 border border-white/10 rounded-3xl backdrop-blur-2xl hover:border-purple-500/30 transition-all duration-500">
                     {/* Glow Effect */}
-                    <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-[2.5rem] blur opacity-0 group-hover:opacity-100 transition duration-700" />
+                    <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-700" />
                     
                     <div className="relative">
                         {/* Duration Badge */}
@@ -144,12 +144,12 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ job, index, isEven }) =
                         </div>
 
                         {/* Role */}
-                        <h3 className="text-2xl md:text-3xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
+                        <h3 className="text-lg md:text-xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-br from-white to-zinc-400 group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
                             {job.role}
                         </h3>
 
                         {/* Description */}
-                        <p className="text-zinc-400 leading-relaxed text-sm md:text-base">
+                        <p className="text-zinc-400 leading-relaxed text-xs md:text-sm">
                             {job.description}
                         </p>
 
