@@ -1,358 +1,175 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform, useSpring, MotionValue } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { PortfolioData } from '../types';
 
-// FIX: Correct Relative Imports based on your provided paths
-import { PortfolioData } from '../types'; 
-import { SkillConstellation } from '../SkillConstellation';
-
-// Improved icon slug mapping
 const getIconSlug = (skill: string) => {
   const map: Record<string, string> = {
-    'reactjs': 'react',
-    'nextjs': 'nextdotjs',
-    'nodejs': 'nodedotjs',
-    'postgresql': 'postgresql',
-    'springboot': 'springboot',
-    'gcp': 'googlecloud',
-    'solidity': 'solidity',
-    'scikit-learn': 'scikitlearn',
-    'c++': 'cplusplus',
-    'c#': 'csharp',
-    'mongodb': 'mongodb',
-    'aws': 'amazonaws',
-    'docker': 'docker',
-    'linux': 'linux',
-    'typescript': 'typescript',
-    'java': 'java',
-    'python': 'python',
-    'javascript': 'javascript',
-    'tailwindcss': 'tailwindcss',
-    'kubernetes': 'kubernetes',
-    'graphql': 'graphql',
-    'redis': 'redis',
-    'git': 'git'
+    'reactjs': 'react', 'nextjs': 'nextdotjs', 'nodejs': 'nodedotjs',
+    'postgresql': 'postgresql', 'springboot': 'springboot', 'gcp': 'googlecloud',
+    'solidity': 'solidity', 'scikit-learn': 'scikitlearn', 'c++': 'cplusplus',
+    'c#': 'csharp', 'mongodb': 'mongodb', 'aws': 'amazonaws', 'docker': 'docker',
+    'linux': 'linux', 'typescript': 'typescript', 'java': 'java', 'python': 'python',
+    'javascript': 'javascript', 'tailwindcss': 'tailwindcss', 'kubernetes': 'kubernetes',
+    'graphql': 'graphql', 'redis': 'redis', 'git': 'git',
   };
-  const s = skill.toLowerCase().trim().replace(/\s+/g, '');
-  return map[s] || s;
+  return map[skill.toLowerCase().trim().replace(/\s+/g, '')] || skill.toLowerCase().trim().replace(/\s+/g, '');
 };
 
+const ACCENTS = [
+  { dot: 'bg-blue-400', hover: 'hover:border-blue-500/30', glow: 'from-blue-500/8 to-blue-500/0' },
+  { dot: 'bg-violet-400', hover: 'hover:border-violet-500/30', glow: 'from-violet-500/8 to-violet-500/0' },
+  { dot: 'bg-emerald-400', hover: 'hover:border-emerald-500/30', glow: 'from-emerald-500/8 to-emerald-500/0' },
+  { dot: 'bg-pink-400', hover: 'hover:border-pink-500/30', glow: 'from-pink-500/8 to-pink-500/0' },
+  { dot: 'bg-amber-400', hover: 'hover:border-amber-500/30', glow: 'from-amber-500/8 to-amber-500/0' },
+  { dot: 'bg-cyan-400', hover: 'hover:border-cyan-500/30', glow: 'from-cyan-500/8 to-cyan-500/0' },
+];
+
 interface SkillsProps {
-    portfolioData: PortfolioData;
+  portfolioData: PortfolioData;
 }
 
 export const Skills: React.FC<SkillsProps> = ({ portfolioData }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start start", "end end"]
-    });
+  const categories = Object.entries(portfolioData.skills).filter(([, s]) => Array.isArray(s));
+  const totalSkills = categories.reduce((acc, [, s]) => acc + s.length, 0);
+  const [active, setActive] = useState<string | null>(null);
 
-    // Smooth spring physics for scroll - slower and more controlled
-    const smoothProgress = useSpring(scrollYProgress, {
-        stiffness: 50,
-        damping: 20,
-        restDelta: 0.001
-    });
+  return (
+    <section id="skills" className="relative py-20 bg-black overflow-hidden">
+      {/* Subtle grid */}
+      <div
+        className="absolute inset-0 opacity-[0.15]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(59,130,246,0.15) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(59,130,246,0.15) 1px, transparent 1px)
+          `,
+          backgroundSize: '64px 64px',
+        }}
+      />
+      {/* Soft radial fade */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(59,130,246,0.06),transparent)]" />
 
-    // Transform categories into an array for easier mapping
-    const categories = Object.entries(portfolioData.skills);
-    const totalSkills = categories.reduce((acc, [, skills]) => acc + skills.length, 0);
+      <div className="container mx-auto px-6 max-w-6xl relative z-10">
 
-    return (
-        <section id="skills" ref={containerRef} className="relative py-16 bg-black overflow-hidden">
-            {/* Animated Grid Background */}
-            <div className="absolute inset-0 opacity-20">
-                <div className="absolute inset-0" 
-                     style={{
-                         backgroundImage: `
-                           linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-                           linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
-                         `,
-                         backgroundSize: '80px 80px'
-                     }} 
-                />
-            </div>
+        {/* ── Header ── */}
+        <motion.div
+          className="text-center mb-10"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.55, ease: 'easeOut' }}
+        >
+          <span className="inline-block px-3 py-1 text-[10px] font-mono tracking-[0.28em] uppercase border border-blue-500/25 rounded-full text-blue-400 bg-blue-500/5 mb-4">
+            Technical Arsenal
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-zinc-500">
+              Skills &amp;{' '}
+            </span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400">
+              Expertise
+            </span>
+          </h2>
+          <p className="text-zinc-600 text-xs font-mono tracking-widest">
+            {totalSkills} technologies · {categories.length} domains
+          </p>
+        </motion.div>
 
-            {/* Radial Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-radial from-blue-900/5 via-transparent to-transparent" />
+        {/* ── Filter tabs ── */}
+        <motion.div
+          className="flex flex-wrap justify-center gap-2 mb-8"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, delay: 0.1 }}
+        >
+          <button
+            onClick={() => setActive(null)}
+            className={`px-3.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-200 ${
+              active === null
+                ? 'bg-white text-black shadow-md'
+                : 'bg-white/[0.04] text-zinc-500 border border-white/8 hover:bg-white/8 hover:text-zinc-300'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(([cat]) => (
+            <button
+              key={cat}
+              onClick={() => setActive(active === cat ? null : cat)}
+              className={`px-3.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-200 ${
+                active === cat
+                  ? 'bg-white text-black shadow-md'
+                  : 'bg-white/[0.04] text-zinc-500 border border-white/8 hover:bg-white/8 hover:text-zinc-300'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </motion.div>
 
-            <div className="container mx-auto px-6 max-w-7xl relative z-10">
-                
-                {/* Scroll-Driven Header */}
-                <motion.div
-                    className="text-center mb-12"
-                    initial={{ opacity: 0, y: 50 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                >
-                    <motion.div className="inline-block mb-6">
-                        <span className="px-4 py-2 text-xs font-mono tracking-[0.3em] uppercase border border-blue-500/30 rounded-full text-blue-400 bg-blue-500/5">
-                            Technical Arsenal
-                        </span>
-                    </motion.div>
-                    
-                    <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-zinc-600">
-                            Skills &
-                        </span>
-                        <br />
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                            Expertise
-                        </span>
-                    </h2>
-                    
-                    <p className="text-zinc-400 text-sm max-w-xl mx-auto">
-                        Mastery across {totalSkills}+ technologies, frameworks, and platforms
-                    </p>
-                </motion.div>
+        {/* ── Category cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {categories.map(([category, skills], idx) => {
+            const accent = ACCENTS[idx % ACCENTS.length];
+            const dimmed = active !== null && active !== category;
 
-                {/* The Main Skills Display */}
-                <div className="space-y-8">
-                    {categories.map(([category, skills], categoryIndex) => (
-                        <SkillCategorySection
-                            key={category}
-                            category={category}
-                            skills={skills}
-                            categoryIndex={categoryIndex}
-                            scrollProgress={smoothProgress}
-                            totalCategories={categories.length}
-                        />
-                    ))}
+            return (
+              <motion.div
+                key={category}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-30px' }}
+                transition={{ duration: 0.4, delay: idx * 0.06, ease: 'easeOut' }}
+                className={`group relative rounded-2xl border border-white/[0.07] bg-zinc-900/35 backdrop-blur-xl p-4 transition-all duration-300 ${accent.hover} ${dimmed ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}
+              >
+                {/* Hover glow */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${accent.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+
+                {/* Category header */}
+                <div className="relative flex items-center gap-2 mb-3">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${accent.dot}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                    {category}
+                  </span>
+                  <span className="ml-auto text-[10px] font-mono text-zinc-700">{skills.length}</span>
                 </div>
 
-                {/* Constellation Background Integration */}
-                <motion.div
-                    className="mt-12"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-200px" }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                >
-                    <SkillConstellation skillsData={portfolioData.skills} />
-                </motion.div>
+                {/* Divider */}
+                <div className="relative h-px bg-white/[0.05] mb-3" />
 
-            </div>
-        </section>
-    );
-};
-
-interface SkillCategorySectionProps {
-    category: string;
-    skills: string[];
-    categoryIndex: number;
-    scrollProgress: MotionValue<number>;
-    totalCategories: number;
-}
-
-const SkillCategorySection: React.FC<SkillCategorySectionProps> = ({
-    category,
-    skills,
-    categoryIndex,
-}) => {
-    const sectionRef = useRef<HTMLDivElement>(null);
-    
-    // Individual scroll tracking for this specific section
-    const { scrollYProgress: sectionProgress } = useScroll({
-        target: sectionRef,
-        offset: ["start 0.6", "end 0.4"] // Start animating when section is 60% down the viewport, end when 40% up
-    });
-
-    const smoothSectionProgress = useSpring(sectionProgress, {
-        stiffness: 60,
-        damping: 25
-    });
-
-    // Section-level animations based on viewport center
-    const sectionOpacity = useTransform(
-        smoothSectionProgress, 
-        [0, 0.15, 0.85, 1], 
-        [0, 1, 1, 0]
-    );
-    const sectionY = useTransform(smoothSectionProgress, [0, 0.25], [80, 0]);
-    const sectionScale = useTransform(smoothSectionProgress, [0, 0.25, 0.85, 1], [0.95, 1, 1, 0.98]);
-
-    return (
-        <motion.div
-            ref={sectionRef}
-            className="relative flex items-center justify-center py-6"
-            style={{
-                opacity: sectionOpacity,
-                y: sectionY,
-                scale: sectionScale
-            }}
-        >
-            <div className="w-full max-w-7xl mx-auto px-6">
-            {/* Category Header with Animated Line */}
-            <div className="flex items-center gap-4 mb-6">
-                <motion.div 
-                    className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"
-                    style={{
-                        width: useTransform(smoothSectionProgress, [0.05, 0.25], ['0%', '100%'])
-                    }}
-                />
-                
-                <motion.h3
-                    className="text-xl md:text-2xl font-bold whitespace-nowrap"
-                    style={{
-                        opacity: useTransform(smoothSectionProgress, [0.05, 0.25], [0, 1]),
-                        x: useTransform(smoothSectionProgress, [0.05, 0.25], [-30, 0])
-                    }}
-                >
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">
-                        {category}
-                    </span>
-                </motion.h3>
-                
-                <motion.div 
-                    className="flex-1 h-px bg-gradient-to-r from-blue-500 to-transparent"
-                    style={{
-                        width: useTransform(smoothSectionProgress, [0.1, 0.3], ['0%', '100%'])
-                    }}
-                />
-            </div>
-
-            {/* Skills Grid with Staggered Reveal */}
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {skills.map((skill, skillIndex) => (
-                    <SkillCard
-                        key={skill}
-                        skill={skill}
-                        skillIndex={skillIndex}
-                        totalSkills={skills.length}
-                        categoryProgress={smoothSectionProgress}
-                        startProgress={0}
-                    />
-                ))}
-            </div>
-
-            {/* Category Number Indicator */}
-            <motion.div 
-                className="absolute -left-6 top-0 text-9xl font-black opacity-5 pointer-events-none select-none"
-                style={{
-                    opacity: useTransform(smoothSectionProgress, [0.1, 0.3, 0.75, 0.9], [0, 0.08, 0.08, 0])
-                }}
-            >
-                {String(categoryIndex + 1).padStart(2, '0')}
-            </motion.div>
-            </div>
-        </motion.div>
-    );
-};
-
-interface SkillCardProps {
-    skill: string;
-    skillIndex: number;
-    totalSkills: number;
-    categoryProgress: MotionValue<number>;
-    startProgress: number;
-}
-
-const SkillCard: React.FC<SkillCardProps> = ({
-    skill,
-    skillIndex,
-    totalSkills,
-    categoryProgress,
-}) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const cardRef = useRef<HTMLDivElement>(null);
-
-    // Staggered reveal animation for each skill based on section progress
-    const skillDelay = (skillIndex / totalSkills) * 0.25;
-    const skillStartProgress = 0.2 + skillDelay;
-    const skillEndProgress = skillStartProgress + 0.12;
-
-    const opacity = useTransform(categoryProgress, [skillStartProgress, skillEndProgress], [0, 1]);
-    const scale = useTransform(categoryProgress, [skillStartProgress, skillEndProgress], [0.8, 1]);
-    const y = useTransform(categoryProgress, [skillStartProgress, skillEndProgress], [30, 0]);
-    const rotateX = useTransform(categoryProgress, [skillStartProgress, skillEndProgress], [25, 0]);
-
-    return (
-        <motion.div
-            ref={cardRef}
-            className="group relative"
-            style={{ 
-                opacity, 
-                scale, 
-                y,
-                rotateX,
-                transformPerspective: 1000
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            {/* Glow Effect on Hover */}
-            <motion.div 
-                className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-opacity duration-500"
-                animate={{
-                    opacity: isHovered ? 0.3 : 0
-                }}
-            />
-
-            {/* Card */}
-            <div className="relative h-full p-4 bg-zinc-900/50 border border-white/5 rounded-xl backdrop-blur-xl hover:bg-zinc-800/50 hover:border-white/10 transition-all duration-300 cursor-default">
-
-                {/* Icon */}
-                <div className="mb-2 flex items-center justify-center">
-                    <motion.div
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors"
-                        animate={{
-                            rotate: isHovered ? [0, -10, 10, 0] : 0
-                        }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <Image
-                            src={`https://cdn.simpleicons.org/${getIconSlug(skill)}/white`}
-                            className="w-6 h-6 opacity-60 group-hover:opacity-100 transition-opacity"
-                            alt={skill}
-                            width={24}
-                            height={24}
-                            unoptimized
-                            onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                            }}
-                        />
-                    </motion.div>
+                {/* Skill pills */}
+                <div className="relative flex flex-wrap gap-1.5">
+                  {skills.map((skill) => (
+                    <SkillPill key={skill} skill={skill} />
+                  ))}
                 </div>
+              </motion.div>
+            );
+          })}
+        </div>
 
-                {/* Skill Name */}
-                <h4 className="text-center text-sm font-semibold text-zinc-400 group-hover:text-white transition-colors">
-                    {skill}
-                </h4>
-
-                {/* Animated Border on Hover */}
-                <motion.div 
-                    className="absolute inset-0 rounded-2xl"
-                    style={{
-                        background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)',
-                        backgroundSize: '200% 100%'
-                    }}
-                    animate={{
-                        backgroundPosition: isHovered ? ['0% 0%', '200% 0%'] : '0% 0%'
-                    }}
-                    transition={{
-                        duration: 1.5,
-                        repeat: isHovered ? Infinity : 0,
-                        ease: 'linear'
-                    }}
-                />
-            </div>
-
-            {/* Skill Index Number (Appears on Hover) */}
-            <motion.div 
-                className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                    scale: isHovered ? 1 : 0,
-                    opacity: isHovered ? 1 : 0
-                }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            >
-                {skillIndex + 1}
-            </motion.div>
-        </motion.div>
-    );
+      </div>
+    </section>
+  );
 };
+
+const SkillPill: React.FC<{ skill: string }> = ({ skill }) => (
+  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-150 cursor-default group/pill">
+    <Image
+      src={`https://cdn.simpleicons.org/${getIconSlug(skill)}/ffffff`}
+      className="w-3 h-3 opacity-35 group-hover/pill:opacity-75 transition-opacity flex-shrink-0"
+      alt={skill}
+      width={12}
+      height={12}
+      unoptimized
+      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+    />
+    <span className="text-[11px] font-medium text-zinc-500 group-hover/pill:text-zinc-200 transition-colors whitespace-nowrap leading-none">
+      {skill}
+    </span>
+  </div>
+);

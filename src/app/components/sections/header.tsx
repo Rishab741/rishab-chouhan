@@ -266,24 +266,6 @@ export const Header: React.FC<{ portfolioData: PortfolioData }> = ({ portfolioDa
 
                 </div>
 
-                {/* Scroll Indicator */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 1, delay: 1.2 }}
-                    className="absolute bottom-12 left-1/2 -translate-x-1/2"
-                >
-                    <motion.div
-                        animate={{ y: [0, 10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="flex flex-col items-center gap-2"
-                    >
-                        <span className="text-xs font-mono tracking-[0.3em] uppercase text-zinc-500">
-                            Scroll
-                        </span>
-                        <div className="w-px h-16 bg-gradient-to-b from-zinc-500 to-transparent" />
-                    </motion.div>
-                </motion.div>
             </div>
         </section>
     );
