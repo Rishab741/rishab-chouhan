@@ -63,6 +63,22 @@
       "contribution": "I developed data pipelines and analytical models for real-time soot formation estimation, and improved the existing DSCNN ML model to enhance error handling efficiency by 80%.",
       "liveUrl": "#",
       "repoUrl": "#"
+    },
+    {
+      "title": "Platstock — Retail Investment Intelligence Platform",
+      "description": "A mobile-first personal finance platform democratising investing for retail investors. Connects to live brokerage accounts, tracks portfolios with TWR and risk metrics (Sharpe, VaR, drawdown), surfaces ML-driven insights, and runs counterfactual simulations — 'what if you had bought X instead?' — powered by the Vestara Counterfactual Intelligence Engine (VCIE) with Behavioral Transaction Fingerprinting and Monte Carlo scenario modelling.",
+      "technologies": ["React Native", "Expo", "TypeScript", "FastAPI", "Supabase", "Python", "PostgreSQL", "Zustand"],
+      "contribution": "Architected the full-stack platform end-to-end: Expo mobile app with pure SVG charts, FastAPI Python engine for portfolio analytics, Supabase BaaS with 19 SQL migrations and RLS, 8 Deno edge functions, and the VCIE simulation pipeline including behavioral profiling, cash-flow replay, and decision impact trees.",
+      "liveUrl": "#",
+      "repoUrl": "#"
+    },
+    {
+      "title": "Decentralized Prediction Market Platform",
+      "description": "A multi-tenant pari-mutuel prediction market on Ethereum (Sepolia testnet). Operators register betplaces and deploy categorised markets (stocks, crypto, sports, politics); users purchase an ERC20 settlement token and stake on outcomes. Winners split the total pool proportional to their bet — odds emerge from stake distribution, not an AMM. Three live markets deployed for NVDA, BTC, and AAPL.",
+      "technologies": ["Solidity", "Hardhat", "React", "Vite", "Ethereum", "ERC20", "ethers.js", "Sepolia"],
+      "contribution": "Designed and deployed four interacting smart contracts — a custom ERC20 with ICO engine (ETH + stablecoin purchase), a pari-mutuel Market with reentrancy-guarded payout, a MarketFactory registry indexed by tenant and category, and a TenantRegistry with on-chain JSON metadata. Built the React/Vite frontend with ethers v6 for market browsing, betting, and admin flows.",
+      "liveUrl": "#",
+      "repoUrl": "#"
     }
   ],
   "education": [

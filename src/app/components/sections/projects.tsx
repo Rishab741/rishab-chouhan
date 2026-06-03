@@ -1,6 +1,5 @@
 'use client';
 import React, { useRef, useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
 import { PortfolioData } from '../types';
 import { SectionTitle } from '../ui/DesignSystem';
 
@@ -49,7 +48,7 @@ export const Projects: React.FC<{ portfolioData: PortfolioData }> = ({ portfolio
             <div className="container mx-auto px-6 max-w-7xl">
                 <SectionTitle title="Featured Projects" subtitle="Portfolio" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {portfolioData.projects.map((project, index) => (
                         <SpotlightCard key={index} className="h-full group">
                             <div className="p-5 h-full flex flex-col">
@@ -72,11 +71,6 @@ export const Projects: React.FC<{ portfolioData: PortfolioData }> = ({ portfolio
                                     {project.description}
                                 </p>
 
-                                {/* Bottom Link */}
-                                <div className="flex items-center gap-2 text-sm font-bold text-white mt-auto">
-                                    View Project 
-                                    <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                </div>
                             </div>
                         </SpotlightCard>
                     ))}
