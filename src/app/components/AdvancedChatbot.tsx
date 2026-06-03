@@ -78,7 +78,7 @@ export default function AdvancedChatbot() {
         if (socket.readyState !== WebSocket.OPEN) {
           addMessage({
             role: 'assistant',
-            content: "The server is waking up from sleep (Render free tier). This can take up to 60 seconds — please hang tight!",
+            content: "The server is waking up... This can take around 60 seconds. Thanks for your patience!",
             timestamp: new Date()
           });
         }
